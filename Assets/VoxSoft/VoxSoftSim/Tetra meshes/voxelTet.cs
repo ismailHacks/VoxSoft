@@ -27,8 +27,11 @@ public class voxelTet : TetrahedronData
 
 	public voxelTet()
 	{
+		float startTime = Time.realtimeSinceStartup;
 		makeActuator(0,0,0,8,2,3,10);
+		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		combineAndOptimizeVoxels();
+		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
 	private void makeCylinder(int posX, int posY, int posZ, float radius, float height)

@@ -21,7 +21,7 @@ public class ActualBilliardTable : BilliardTable
     //Private
 
     //The diameter of a pool ball is 57 mm
-    private readonly float ballRadius = 0.0285f;
+    //private readonly float ballRadius = 0.0285f;
 
     //The holes are roughly twice the size
     private readonly float bigHoleRadius = 0.11f;
