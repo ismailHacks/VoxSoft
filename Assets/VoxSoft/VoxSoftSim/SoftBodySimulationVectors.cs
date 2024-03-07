@@ -46,7 +46,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
 	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0.1f;
+	private readonly float edgeCompliance = 0f; //0.1
 	//Should be 0 or the mesh becomes very flat even for small values 
 	private readonly float volCompliance = 0.0f;
 
@@ -67,7 +67,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 
 
-	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float meshScale = 2f)
+	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float meshScale = 2f, float volScale = 1f)
 	{
 		//Tetra data structures
 		this.tetraData = tetraData;
@@ -95,7 +95,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		
 
 		//Fill the arrays
-		FillArrays(meshScale);
+		FillArrays(meshScale, volScale);
 
 		//Move the mesh to its start position
 		Translate(startPos);
@@ -107,7 +107,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 
 	//Fill the data structures needed or soft body physics
-	private void FillArrays(float meshScale)
+	private void FillArrays(float meshScale, float volScale)
 	{
 		//[x0, y0, z0, x1, y1, z1, ...]
 		float[] flatVerts = tetraData.GetVerts;
@@ -122,21 +122,17 @@ public class SoftBodySimulationVectors : IGrabbable
 			pos[i / 3] = new Vector3(x, y, z) * meshScale;
 		}
 
-
 		//Particle previous position
 		//Not needed because is already set to 0s
-
 
 		//Particle velocity
 		//Not needed because is already set to 0s
 
-
 		//Rest volume
 		for (int i = 0; i < numTets; i++)
 		{
-			restVolumes[i] = GetTetVolume(i);
+			restVolumes[i] = GetTetVolume(i, 1);
 		}
-
 
 		//Inverse mass (1/w)
 		for (int i = 0; i < numTets; i++)
@@ -152,7 +148,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			invMass[tetIds[4 * i + 3]] += pInvMass;
 		}
 
-
 		//Rest edge length
 		for (int i = 0; i < restEdgeLengths.Length; i++)
 		{
@@ -163,7 +158,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	public void MyFixedUpdate()
+	public void MyFixedUpdate(float volScale)
 	{
 		if (!simulate)
 		{
@@ -174,7 +169,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//ShrinkWalls(dt);
 
-		Simulate(dt);
+		Simulate(dt, volScale);
 	}
 
 	public void MyUpdate()
@@ -208,12 +203,17 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 
+
+
+
+
+
 	//
 	// Simulation
 	//
 
 	//Main soft body simulation loop
-	void Simulate(float dt)
+	void Simulate(float dt, float volScale)
 	{
 		float sdt = dt / numSubSteps;
 
@@ -221,7 +221,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		{		
 			PreSolve(sdt, gravity);
 
-			SolveConstraints(sdt);
+			SolveConstraints(sdt, volScale);
 
 			HandleEnvironmentCollision();
 
@@ -252,11 +252,187 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	//Handle the soft body physics
+	private void SolveConstraints(float dt, float volScale)
+	{
+		//Constraints
+		//Enforce constraints by moving each vertex: x = x + deltaX
+		//- Correction vector: deltaX = lambda * w * gradC
+		//- Inverse mass: w
+		//- lambda = -C / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + ... + wn * |grad_C|^2 + (alpha / dt^2)) where 1, 2, ... n is the number of participating particles in the constraint.
+		//		- n = 2 if we have an edge, n = 4 if we have a tetra
+		//		- |grad_C1|^2 is the squared length
+		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
+		//- Compliance (inverse stiffness): alpha
+
+		SolveEdges(edgeCompliance, dt, 1);
+		SolveVolumes(volCompliance, dt, 1);
+	}
+
+	//Environment collision handling
 	private void HandleEnvironmentCollision()
 	{
 		for (int i = 0; i < numParticles; i++)
 		{
 			EnvironmentCollision(i);
+		}
+	}
+
+	//Fix velocity
+	private void PostSolve(float dt)
+	{
+		float oneOverdt = 1f / dt;
+	
+		//For each particle
+		for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] == 0f)
+			{
+				continue;
+			}
+
+			//v = (x - xPrev) / dt
+			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
+		}
+	}
+
+
+
+	//Solve distance constraint
+	//2 particles:
+	//Positions: x0, x1
+	//Inverse mass: w0, w1
+	//Rest length: l_rest
+	//Current length: l
+	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
+	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
+	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
+	private void SolveEdges(float compliance, float dt, float volScale)
+	{
+		float alpha = compliance / (dt * dt);
+
+		//For each edge
+		for (int i = 0; i < numEdges; i++)
+		{
+			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
+			int id0 = tetEdgeIds[2 * i + 0];
+			int id1 = tetEdgeIds[2 * i + 1];
+
+			float w0 = invMass[id0];
+			float w1 = invMass[id1];
+
+			float wTot = w0 + w1;
+			
+			//This edge is fixed so dont simulate
+			if (wTot == 0f)
+			{
+				continue;
+			}
+
+			//The current length of the edge l
+
+			//x0-x1
+			//The result is stored in grads array
+			Vector3 id0_minus_id1 = pos[id0] - pos[id1];
+
+			//sqrMargnitude(x0-x1)
+			float l = Vector3.Magnitude(id0_minus_id1);
+
+			//If they are at the same pos we get a divisio by 0 later so ignore
+			if (l == 0f)
+			{
+				continue;
+			}
+
+			//(xo-x1) * (1/|x0-x1|) = gradC
+			Vector3 gradC = id0_minus_id1 / l;
+			
+			float l_rest = restEdgeLengths[i]*volScale;
+			
+			float C = l - l_rest;
+
+			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
+			float lambda = -C / (wTot + alpha);
+
+			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
+			pos[id0] += lambda * w0 * gradC;
+			pos[id1] += -lambda * w1 * gradC;
+		}
+	}
+
+	//TODO: This method is the bottleneck
+	//Solve volume constraint
+	//Constraint function is now defined as C = 6(V - V_rest). The 6 is to make the equation simpler because of volume
+	//4 gradients:
+	//grad_C1 = (x4-x2)x(x3-x2) <- direction perpendicular to the triangle opposite of p1 to maximally increase the volume when moving p1
+	//grad_C2 = (x3-x1)x(x4-x1)
+	//grad_C3 = (x4-x1)x(x2-x1)
+	//grad_C4 = (x2-x1)x(x3-x1)
+	//V = 1/6 * ((x2-x1)x(x3-x1))*(x4-x1)
+	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
+	//delta_xi = -lambda * w_i * grad_Ci
+	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
+	private void SolveVolumes(float compliance, float dt, float volScale)
+	{
+		float alpha = compliance / (dt * dt);
+
+		//For each tetra
+		for (int i = 0; i < numTets; i++)
+		{
+			float wTimesGrad = 0f;
+		
+			//Foreach vertex in the tetra
+			for (int j = 0; j < 4; j++)
+			{
+				int idThis = tetIds[4 * i + j];
+
+                //The 3 opposite vertices ids
+                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+
+                //(x4 - x2)
+                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
+				//(x3 - x2)
+				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
+
+				//(x4 - x2)x(x3 - x2)
+				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
+
+				//Multiplying by 1/6 in the denominator is the same as multiplying by 6 in the numerator
+				//Im not sure why hes doing it... maybe because alpha should not be affected by it?  
+				Vector3 gradC = cross * (1f / 6f);
+
+				gradients[j] = gradC;
+
+				//w1 * |grad_C1|^2
+				wTimesGrad += invMass[idThis] * Vector3.SqrMagnitude(gradC);
+			}
+
+			//All vertices are fixed so dont simulate
+			if (wTimesGrad == 0f)
+			{
+				continue;
+			}
+
+			float vol = GetTetVolume(i, volScale);
+			float restVol = restVolumes[i];
+
+			float C = vol - restVol;
+
+			//The guy in the video is dividing by 6 in the code but multiplying in the video
+			//C *= 6f;
+
+			float lambda = -C / (wTimesGrad + alpha);
+			
+            //Move each vertex
+            for (int j = 0; j < 4; j++)
+            {
+                int id = tetIds[4 * i + j];
+
+				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
+				pos[id] += lambda * invMass[id] * gradients[j];
+			}
 		}
 	}
 
@@ -307,178 +483,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	//Handle the soft body physics
-	private void SolveConstraints(float dt)
-	{
-		//Constraints
-		//Enforce constraints by moving each vertex: x = x + deltaX
-		//- Correction vector: deltaX = lambda * w * gradC
-		//- Inverse mass: w
-		//- lambda = -C / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + ... + wn * |grad_C|^2 + (alpha / dt^2)) where 1, 2, ... n is the number of participating particles in the constraint.
-		//		- n = 2 if we have an edge, n = 4 if we have a tetra
-		//		- |grad_C1|^2 is the squared length
-		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
-		//- Compliance (inverse stiffness): alpha 
 
-		SolveEdges(edgeCompliance, dt);
-		SolveVolumes(volCompliance, dt);
-	}
 
-	//Fix velocity
-	private void PostSolve(float dt)
-	{
-		float oneOverdt = 1f / dt;
-	
-		//For each particle
-		for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
 
-			//v = (x - xPrev) / dt
-			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}
-	}
-
-	//Solve distance constraint
-	//2 particles:
-	//Positions: x0, x1
-	//Inverse mass: w0, w1
-	//Rest length: l_rest
-	//Current length: l
-	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
-	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
-	private void SolveEdges(float compliance, float dt)
-	{
-		float alpha = compliance / (dt * dt);
-
-		//For each edge
-		for (int i = 0; i < numEdges; i++)
-		{
-			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
-			int id0 = tetEdgeIds[2 * i + 0];
-			int id1 = tetEdgeIds[2 * i + 1];
-
-			float w0 = invMass[id0];
-			float w1 = invMass[id1];
-
-			float wTot = w0 + w1;
-			
-			//This edge is fixed so dont simulate
-			if (wTot == 0f)
-			{
-				continue;
-			}
-
-			//The current length of the edge l
-
-			//x0-x1
-			//The result is stored in grads array
-			Vector3 id0_minus_id1 = pos[id0] - pos[id1];
-
-			//sqrMargnitude(x0-x1)
-			float l = Vector3.Magnitude(id0_minus_id1);
-
-			//If they are at the same pos we get a divisio by 0 later so ignore
-			if (l == 0f)
-			{
-				continue;
-			}
-
-			//(xo-x1) * (1/|x0-x1|) = gradC
-			Vector3 gradC = id0_minus_id1 / l;
-			
-			float l_rest = restEdgeLengths[i];
-			
-			float C = l - l_rest;
-
-			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
-			float lambda = -C / (wTot + alpha);
-
-			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-			pos[id0] += lambda * w0 * gradC;
-			pos[id1] += -lambda * w1 * gradC;
-		}
-	}
-
-	//TODO: This method is the bottleneck
-	//Solve volume constraint
-	//Constraint function is now defined as C = 6(V - V_rest). The 6 is to make the equation simpler because of volume
-	//4 gradients:
-	//grad_C1 = (x4-x2)x(x3-x2) <- direction perpendicular to the triangle opposite of p1 to maximally increase the volume when moving p1
-	//grad_C2 = (x3-x1)x(x4-x1)
-	//grad_C3 = (x4-x1)x(x2-x1)
-	//grad_C4 = (x2-x1)x(x3-x1)
-	//V = 1/6 * ((x2-x1)x(x3-x1))*(x4-x1)
-	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
-	//delta_xi = -lambda * w_i * grad_Ci
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
-	private void SolveVolumes(float compliance, float dt)
-	{
-		float alpha = compliance / (dt * dt);
-
-		//For each tetra
-		for (int i = 0; i < numTets; i++)
-		{
-			float wTimesGrad = 0f;
-		
-			//Foreach vertex in the tetra
-			for (int j = 0; j < 4; j++)
-			{
-				int idThis = tetIds[4 * i + j];
-
-                //The 3 opposite vertices ids
-                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
-
-                //(x4 - x2)
-                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
-				//(x3 - x2)
-				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-
-				//(x4 - x2)x(x3 - x2)
-				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
-
-				//Multiplying by 1/6 in the denominator is the same as multiplying by 6 in the numerator
-				//Im not sure why hes doing it... maybe because alpha should not be affected by it?  
-				Vector3 gradC = cross * (1f / 6f);
-
-				gradients[j] = gradC;
-
-				//w1 * |grad_C1|^2
-				wTimesGrad += invMass[idThis] * Vector3.SqrMagnitude(gradC);
-			}
-
-			//All vertices are fixed so dont simulate
-			if (wTimesGrad == 0f)
-			{
-				continue;
-			}
-
-			float vol = GetTetVolume(i);
-			float restVol = restVolumes[i];
-
-			float C = vol - restVol;
-
-			//The guy in the video is dividing by 6 in the code but multiplying in the video
-			//C *= 6f;
-
-			float lambda = -C / (wTimesGrad + alpha);
-			
-            //Move each vertex
-            for (int j = 0; j < 4; j++)
-            {
-                int id = tetIds[4 * i + j];
-
-				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-				pos[id] += lambda * invMass[id] * gradients[j];
-			}
-		}
-	}
 
 
 	//
@@ -512,6 +519,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 
+
+
+
+
 	//
 	// Help methods
 	//
@@ -527,7 +538,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Calculate the volume of a tetrahedron
-	private float GetTetVolume(int nr)
+	private float GetTetVolume(int nr, float volScale)
 	{
 		//The 4 vertices belonging to this tetra 
 		int id0 = tetIds[4 * nr + 0];
@@ -540,10 +551,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		Vector3 c = pos[id2];
 		Vector3 d = pos[id3];
 
-		float volume = Tetrahedron.Volume(a, b, c, d);
+		float volume = Tetrahedron.Volume(a, b, c, d)*volScale;
 
 		return volume;
 	}
+
+
+
 
 
 

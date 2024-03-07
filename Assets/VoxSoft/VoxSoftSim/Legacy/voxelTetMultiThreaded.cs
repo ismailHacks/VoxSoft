@@ -19,6 +19,7 @@ public class voxelTetMultiThreaded : TetrahedronData
 	public int[] tetIdsVoxelMesh = new int[20*noVoxels];
 	private int[] tetEdgeIdsVoxelMesh = new int[36*noVoxels];
 	private int[] tetSurfaceTriIdsVoxelMesh = new int[48*noVoxels];
+	private Vector3[] posID = new Vector3[noVoxels];
 
 	//Getters
 	public override float[] GetVerts => vertsVoxelMesh;
@@ -29,10 +30,14 @@ public class voxelTetMultiThreaded : TetrahedronData
 	public voxelTetMultiThreaded()
 	{
 		float startTime = Time.realtimeSinceStartup;
+		
 		makeActuator(0,0,0,4,2,3,8);
+
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-		//combineAndOptimizeVoxels();
-		combineVoxelsMulti(); //Currently burst compiling
+		
+		combineAndOptimizeVoxels();
+		//combineVoxelsMulti(); //Currently burst compiling does not seem to accelerate speed
+		
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		Debug.Log(globalVoxelCount);
 	}
@@ -63,7 +68,7 @@ public class voxelTetMultiThreaded : TetrahedronData
 		globalVoxelCount++;
 	}
 
-	private void makeVoxelCombiner(int posX, int posY, int posZ)
+	private void makeVoxel2(int posX, int posY, int posZ)
 	{
 		for (int i = 0; i < verts.Length/3; i++)
 		{
@@ -86,11 +91,19 @@ public class voxelTetMultiThreaded : TetrahedronData
 		{
 			tetSurfaceTriIdsVoxelMesh[i+48*globalVoxelCount] = tetSurfaceTriIds[i]+8*globalVoxelCount;
 		}
+		posID[globalVoxelCount] = new Vector3(posX, posY, posZ);
 		globalVoxelCount++;
 
+		/*for (int i = 0; i < globalVoxelCount; i++)
+		{
+			if (posID[globalVoxelCount] = )
+			{
+				
+			}
+		}*/
 
-
-		for (int i = 0; i < vertsVoxelMesh.Length/3; i++)
+		/*
+		for (int i = 0; i < 24; i++)
 		{
 			for (int j = 0; j < vertsVoxelMesh.Length/3; j++)
 			{
@@ -126,7 +139,7 @@ public class voxelTetMultiThreaded : TetrahedronData
 				}
 			}
 		}
-
+		*/
 
 
 	}
