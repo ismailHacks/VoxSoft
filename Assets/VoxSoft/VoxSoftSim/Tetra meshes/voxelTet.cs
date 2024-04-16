@@ -1,4 +1,5 @@
 //Using this test to add tetrahedrons in a voxel like way
+//Uses 5 tetrahedrons per voxel
 
 using System.Collections;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ using Unity.Burst;
 
 public class voxelTet : TetrahedronData
 {
-	private static int noVoxels = 1;
+	private static int noVoxels = 2800;
 	private static float voxelScale = 0.1f;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -36,13 +37,26 @@ public class voxelTet : TetrahedronData
 	public voxelTet()
 	{
 		float startTime = Time.realtimeSinceStartup;
-		makeVoxel(0,0,0);
-		//makeActuator(0,0,0,8,2,3,10);
+		
+		//makeVoxel(0,2,0);
+		/*makeVoxel(1,0,0);
+		makeVoxel(2,0,0);
+		makeVoxel(3,0,0);
+		makeVoxel(0,1,0);
+		makeVoxel(1,1,0);
+		makeVoxel(2,1,0);
+		makeVoxel(3,1,0);*/
+
+		makeActuator(0,0,0,5,2,2,8);
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		combineAndOptimizeVoxels(startTime);
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
+	private void voxelTetStart()
+	{
+		makeActuator(0,0,0,5,2,2,8);
+	}
 
 
 	private void makeActuator(int posX, int posY, int posZ, 

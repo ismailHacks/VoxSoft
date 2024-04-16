@@ -131,7 +131,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		//Rest volume
 		for (int i = 0; i < numTets; i++)
 		{
-			restVolumes[i] = GetTetVolume(i, 1);
+			restVolumes[i] = GetTetVolume(i);
 		}
 
 		//Inverse mass (1/w)
@@ -265,8 +265,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		SolveEdges(edgeCompliance, dt, 1);
-		SolveVolumes(volCompliance, dt, 1);
+		SolveEdges(edgeCompliance, dt, volScale);
+		SolveVolumes(volCompliance, dt, volScale);
 	}
 
 	//Environment collision handling
@@ -338,7 +338,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			//sqrMargnitude(x0-x1)
 			float l = Vector3.Magnitude(id0_minus_id1);
 
-			//If they are at the same pos we get a divisio by 0 later so ignore
+			//If they are at the same pos we get a division by 0 later so ignore
 			if (l == 0f)
 			{
 				continue;
@@ -347,7 +347,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			//(xo-x1) * (1/|x0-x1|) = gradC
 			Vector3 gradC = id0_minus_id1 / l;
 			
-			float l_rest = restEdgeLengths[i]*volScale;
+			float l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
 			
 			float C = l - l_rest;
 
@@ -355,7 +355,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			float lambda = -C / (wTot + alpha);
 
 			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-			pos[id0] += lambda * w0 * gradC;
+			pos[id0] += lambda * w0 * gradC;//+ (Mathf.Pow(volScale, 1/3) * gradC)
 			pos[id1] += -lambda * w1 * gradC;
 		}
 	}
@@ -411,12 +411,12 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//All vertices are fixed so dont simulate
 			if (wTimesGrad == 0f)
-			{
+			{;
 				continue;
 			}
 
-			float vol = GetTetVolume(i, volScale);
-			float restVol = restVolumes[i];
+			float vol = GetTetVolume(i);
+			float restVol = restVolumes[i]*volScale; 
 
 			float C = vol - restVol;
 
@@ -431,7 +431,8 @@ public class SoftBodySimulationVectors : IGrabbable
                 int id = tetIds[4 * i + j];
 
 				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-				pos[id] += lambda * invMass[id] * gradients[j];
+				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
+				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
 		}
 	}
@@ -538,7 +539,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Calculate the volume of a tetrahedron
-	private float GetTetVolume(int nr, float volScale)
+	private float GetTetVolume(int nr)
 	{
 		//The 4 vertices belonging to this tetra 
 		int id0 = tetIds[4 * nr + 0];
@@ -551,7 +552,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		Vector3 c = pos[id2];
 		Vector3 d = pos[id3];
 
-		float volume = Tetrahedron.Volume(a, b, c, d)*volScale;
+		float volume = Tetrahedron.Volume(a, b, c, d);
 
 		return volume;
 	}

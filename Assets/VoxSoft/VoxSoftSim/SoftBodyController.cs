@@ -13,7 +13,7 @@ public class SoftBodyController : MonoBehaviour
     
     public Texture2D cursorTexture;
 
-    public float volScale = 1;
+    public float volScale = 0;
 
 
     //Private
