@@ -16,6 +16,11 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
+	private int[] pressureInputTet;
+	private float[] pressureInput = {1};
+	private Vector3[] posis1 = new Vector3[36];
+	private Vector3[] posis2 = new Vector3[36];
+	private bool exit = false;
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -37,7 +42,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -46,7 +52,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
 	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0f; //0.1
+	private readonly float edgeCompliance = 0f;
 	//Should be 0 or the mesh becomes very flat even for small values 
 	private readonly float volCompliance = 0.0f;
 
@@ -54,9 +60,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float floorHeight = -0.01f;
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f); 
 
-
 	//Grabbing with mouse to move mesh around
-	
 	//The id of the particle we grabed with mouse
 	private int grabId = -1;
 	//We grab a single particle and then we sit its inverted mass to 0. When we ungrab we have to reset its inverted mass to what itb was before 
@@ -76,7 +80,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		tetEdgeIds = tetraData.GetTetEdgeIds;
 
 		numParticles = tetraData.GetNumberOfVertices;
-
 		numTets = tetraData.GetNumberOfTetrahedrons;
 		numEdges = tetraData.GetNumberOfEdges;
 
@@ -92,7 +95,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		restVolumes = new float[numTets];
 
 		restEdgeLengths = new float[numEdges];
-		
 
 		//Fill the arrays
 		FillArrays(meshScale, volScale);
@@ -103,8 +105,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		//Init the mesh
 		InitMesh(meshFilter, tetraData);
 	}
-
-
 
 	//Fill the data structures needed or soft body physics
 	private void FillArrays(float meshScale, float volScale)
@@ -202,12 +202,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		return softBodyMesh;
 	}
 
-
-
-
-
-
-
 	//
 	// Simulation
 	//
@@ -243,7 +237,6 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//Update vel
 			vel[i] += dt * gravity;
-
 			//Save old pos
 			prevPos[i] = pos[i];
 
@@ -296,8 +289,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-
-
 	//Solve distance constraint
 	//2 particles:
 	//Positions: x0, x1
@@ -312,11 +303,15 @@ public class SoftBodySimulationVectors : IGrabbable
 		float alpha = compliance / (dt * dt);
 
 		//For each edge
+		//Debug.Log(numEdges);
+
 		for (int i = 0; i < numEdges; i++)
 		{
 			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
 			int id0 = tetEdgeIds[2 * i + 0];
 			int id1 = tetEdgeIds[2 * i + 1];
+			//posis1[i] = pos[id0];
+			//posis2[i] = pos[id1];
 
 			float w0 = invMass[id0];
 			float w1 = invMass[id1];
@@ -328,6 +323,26 @@ public class SoftBodySimulationVectors : IGrabbable
 			{
 				continue;
 			}
+
+
+			/*for (int j = 0; j < numEdges; j++)
+			{
+				if(posis1[j]==pos[id0] && posis2[j]==pos[id1] && j!=i)
+				{
+					exit = true;
+				}
+				if(exit == true)
+				{	
+					Debug.Log("exit");
+					break;
+				}
+			}
+
+			if (exit ==true)
+			{
+				exit = false;
+				continue;
+			}*/
 
 			//The current length of the edge l
 
@@ -346,8 +361,20 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//(xo-x1) * (1/|x0-x1|) = gradC
 			Vector3 gradC = id0_minus_id1 / l;
+			float l_rest;
 			
-			float l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
+			l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
+			//l_rest = restEdgeLengths[i];
+
+
+			/*if(i>-1 && i<18)
+			{
+				l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
+			}
+			else
+			{
+				l_rest = restEdgeLengths[i];
+			}*/
 			
 			float C = l - l_rest;
 
@@ -416,7 +443,18 @@ public class SoftBodySimulationVectors : IGrabbable
 			}
 
 			float vol = GetTetVolume(i);
-			float restVol = restVolumes[i]*volScale; 
+			float restVol;
+			restVol = restVolumes[i]*volScale;
+			//Debug.Log(restVolumes.Length);
+
+			/*if(i<5 && i>-1)
+			{
+				restVol = restVolumes[i]*volScale;
+			}
+			else
+			{
+				restVol = restVolumes[i];
+			}*/
 
 			float C = vol - restVol;
 
@@ -484,11 +522,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-
-
-
-
-
 	//
 	// Unity mesh 
 	//
@@ -518,11 +551,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		softBodyMesh.RecalculateBounds();
 		softBodyMesh.RecalculateNormals();
 	}
-
-
-
-
-
 
 	//
 	// Help methods
@@ -556,11 +584,6 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		return volume;
 	}
-
-
-
-
-
 
 	//
 	// Mesh user interactions

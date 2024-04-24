@@ -14,7 +14,7 @@ using Unity.Burst;
 
 public class voxelTet : TetrahedronData
 {
-	private static int noVoxels = 2800;
+	private static int noVoxels = 500;
 	private static float voxelScale = 0.1f;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -38,7 +38,11 @@ public class voxelTet : TetrahedronData
 	{
 		float startTime = Time.realtimeSinceStartup;
 		
+		//makeVoxel(0,1,0);
 		//makeVoxel(0,2,0);
+		//makeVoxel(0,3,0);
+		//makeVoxel(0,4,0);
+
 		/*makeVoxel(1,0,0);
 		makeVoxel(2,0,0);
 		makeVoxel(3,0,0);
@@ -48,9 +52,10 @@ public class voxelTet : TetrahedronData
 		makeVoxel(3,1,0);*/
 
 		makeActuator(0,0,0,5,2,2,8);
-		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
+		Debug.Log(globalVoxelCount);
+		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		combineAndOptimizeVoxels(startTime);
-		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
+		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
 	private void voxelTetStart()
@@ -203,7 +208,7 @@ public class voxelTet : TetrahedronData
 				}
 			}
 		}
-		Debug.Log("CC = " + connectionCount + " - GVC = " + globalVoxelCount);
+		//Debug.Log("CC = " + connectionCount + " - GVC = " + globalVoxelCount);
 	}
 
 	//Vertices (x, y, z) for a tetrahedral voxel
