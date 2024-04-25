@@ -16,11 +16,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
-	private int[] pressureInputTet;
-	private float[] pressureInput = {1};
-	private Vector3[] posis1 = new Vector3[36];
-	private Vector3[] posis2 = new Vector3[36];
-	private bool exit = false;
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -42,8 +37,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -310,8 +305,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
 			int id0 = tetEdgeIds[2 * i + 0];
 			int id1 = tetEdgeIds[2 * i + 1];
-			//posis1[i] = pos[id0];
-			//posis2[i] = pos[id1];
 
 			float w0 = invMass[id0];
 			float w1 = invMass[id1];
@@ -323,26 +316,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			{
 				continue;
 			}
-
-
-			/*for (int j = 0; j < numEdges; j++)
-			{
-				if(posis1[j]==pos[id0] && posis2[j]==pos[id1] && j!=i)
-				{
-					exit = true;
-				}
-				if(exit == true)
-				{	
-					Debug.Log("exit");
-					break;
-				}
-			}
-
-			if (exit ==true)
-			{
-				exit = false;
-				continue;
-			}*/
 
 			//The current length of the edge l
 
@@ -364,18 +337,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			float l_rest;
 			
 			l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
-			//l_rest = restEdgeLengths[i];
 
-
-			/*if(i>-1 && i<18)
-			{
-				l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
-			}
-			else
-			{
-				l_rest = restEdgeLengths[i];
-			}*/
-			
 			float C = l - l_rest;
 
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
@@ -445,16 +407,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			float vol = GetTetVolume(i);
 			float restVol;
 			restVol = restVolumes[i]*volScale;
-			//Debug.Log(restVolumes.Length);
-
-			/*if(i<5 && i>-1)
-			{
-				restVol = restVolumes[i]*volScale;
-			}
-			else
-			{
-				restVol = restVolumes[i];
-			}*/
 
 			float C = vol - restVol;
 

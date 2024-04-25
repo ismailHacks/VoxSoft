@@ -36,7 +36,8 @@ public class SoftBodyController : MonoBehaviour
     {
         Random.InitState(SEED);
         
-        TetrahedronData softBodyMesh = new voxelTet();
+        //TetrahedronData softBodyMesh = new voxelTet();
+        TetrahedronData softBodyMesh = new tetGen();
         //TetrahedronData softBodyMesh = new StanfordBunny();
 
 

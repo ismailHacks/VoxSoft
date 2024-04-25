@@ -37,30 +37,12 @@ public class voxelTet : TetrahedronData
 	public voxelTet()
 	{
 		float startTime = Time.realtimeSinceStartup;
-		
-		//makeVoxel(0,1,0);
-		//makeVoxel(0,2,0);
-		//makeVoxel(0,3,0);
-		//makeVoxel(0,4,0);
-
-		/*makeVoxel(1,0,0);
-		makeVoxel(2,0,0);
-		makeVoxel(3,0,0);
-		makeVoxel(0,1,0);
-		makeVoxel(1,1,0);
-		makeVoxel(2,1,0);
-		makeVoxel(3,1,0);*/
 
 		makeActuator(0,0,0,5,2,2,8);
 		Debug.Log(globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		combineAndOptimizeVoxels(startTime);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-	}
-
-	private void voxelTetStart()
-	{
-		makeActuator(0,0,0,5,2,2,8);
 	}
 
 
