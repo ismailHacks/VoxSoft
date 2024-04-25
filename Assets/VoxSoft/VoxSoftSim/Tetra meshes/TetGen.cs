@@ -39,33 +39,6 @@ public class tetGen : TetrahedronData
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
-
-	private void makeVoxel(int posX, int posY, int posZ)
-	{
-		for (int i = 0; i < verts.Length/3; i++)
-		{
-			vertsMesh[3*i+(24*globalTetCount)] = (verts[3*i]+posX)*tetScale;
-			vertsMesh[3*i+1+(24*globalTetCount)] = (verts[3*i+1]+posY)*tetScale;
-			vertsMesh[3*i+2+(24*globalTetCount)] = (verts[3*i+2]+posZ)*tetScale;
-		}
-
-		for (int i = 0; i < tetIds.Length; i++)
-		{
-			tetIdsMesh[i+20*globalTetCount] = tetIds[i]+8*globalTetCount;
-		}
-
-		for (int i = 0; i < tetEdgeIds.Length; i++)
-		{
-			tetEdgeIdsMesh[i+36*globalTetCount] = tetEdgeIds[i]+8*globalTetCount;
-		}
-
-		for (int i = 0; i < tetSurfaceTriIds.Length; i++)
-		{
-			tetSurfaceTriIdsMesh[i+48*globalTetCount] = tetSurfaceTriIds[i]+8*globalTetCount;
-		}
-		globalTetCount++;
-	}
-
 	private void seedTet()
 	{
 		for (int i = 0; i < verts.Length/3; i++)
@@ -113,17 +86,17 @@ public class tetGen : TetrahedronData
 		tetEdgeIdsMesh[12+6*globalTetCount+4] = max1ID;
 		tetEdgeIdsMesh[12+6*globalTetCount+5] = 4+globalTetCount;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount] = max2ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+1] = max1ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+2] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+1] = max3ID;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+2] = max1ID;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+3] = max3ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+4] = max2ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+5] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+3] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+4] = max1ID;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+5] = max2ID;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+3] = max3ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+4] = 4+globalTetCount;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+5] = max1ID;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+6] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+7] = max2ID;
+		tetSurfaceTriIdsMesh[12+9*globalTetCount+8] = max3ID;
 		globalTetCount++;
     }
 
