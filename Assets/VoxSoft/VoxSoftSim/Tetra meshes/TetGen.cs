@@ -28,7 +28,7 @@ public class tetGen : TetrahedronData
 	public tetGen()
 	{
 		float startTime = Time.realtimeSinceStartup;
-		
+
 		seedTet();
 		makeTet(0,0,-1);
 		makeTet(1,1,-1);
@@ -125,62 +125,6 @@ public class tetGen : TetrahedronData
 		tetSurfaceTriIdsMesh[12+9*globalTetCount+4] = 4+globalTetCount;
 		tetSurfaceTriIdsMesh[12+9*globalTetCount+5] = max1ID;
 		globalTetCount++;
-    }
-
-    private void findClosestVertices(int posX, int posY, int posZ, out int max3ID, out int max2ID, out int max1ID)
-    {
-        float[] vertexDistances = new float[vertsMesh.Length / 3];
-        float max3 = 0;
-        max3ID = 0;
-        float max2 = 0;
-        max2ID = 0;
-        float max1 = 0;
-        max1ID = 0;
-
-        //Getting closest vertices
-        //TODO Need to make sure it finds the vertises that are closest of a single face, rather than that from multiple faces
-        for (int i = 0; i < vertsMesh.Length / 3; i++)
-        {
-            Vector3 currentPos = new Vector3(posX * tetScale, posY * tetScale, posZ * tetScale);
-            Vector3 measureToPos = new Vector3(vertsMesh[3 * i], vertsMesh[3 * i + 1], vertsMesh[3 * i + 2]);
-            float vertexDistance = Mathf.Abs((currentPos - measureToPos).magnitude);
-            Debug.Log("VT" + i + " - " + vertexDistance);
-
-			if (vertexDistance != 0)
-			{
-				if (vertexDistance < max3 || max3 == 0)
-				{
-					if (vertexDistance < max2 || max2 == 0)
-					{
-						if (vertexDistance < max1 || max1 == 0)
-						{
-							max3 = max2;
-							max3ID = max2ID;
-	
-							max2 = max1;
-							max2ID = max1ID;
-	
-							max1 = vertexDistance;
-							max1ID = i;
-						}
-						else
-						{
-							max3 = max2;
-							max3ID = max2ID;
-	
-							max2 = vertexDistance;
-							max2ID = i;
-						}
-					}
-					else
-					{
-						max3 = vertexDistance;
-						max3ID = i;
-					}
-				}
-			}
-        }
-		Debug.Log("Max3 = " + max3ID + " Max2 = " + max2ID + " Max1 = " + max1ID);
     }
 
     private void findClosestPlaneVertices(int posX, int posY, int posZ, out int max3ID, out int max2ID, out int max1ID)
