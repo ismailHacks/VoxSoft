@@ -7,17 +7,14 @@ using UnityEngine;
 
 public class tetGen : TetrahedronData
 {
-	private static int noTets = 4;
+	private static int noTets = 1;
 	private static float tetScale = 0.2f;
 	private int globalTetCount = 0;
 
-
 	public float[] vertsMesh = new float[12+3*(noTets-1)];
 	public int[] tetIdsMesh = new int[4*noTets];
-	private int[] tetEdgeIdsMesh = new int[12+6*(noTets-1)];
-	private int[] tetSurfaceTriIdsMesh = new int[12+9*(noTets-1)];
-
-	List<Vector2> ChangeID = new List<Vector2>();
+	private int[] tetEdgeIdsMesh = new int[12+12*(noTets-1)];
+	private int[] tetSurfaceTriIdsMesh = new int[12+12*(noTets-1)];
 
 	//Getters
 	public override float[] GetVerts => vertsMesh;
@@ -30,9 +27,9 @@ public class tetGen : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		seedTet();
-		makeTet(0,0,-1);
-		makeTet(1,1,-1);
-		makeTet(1,1,2);
+		//makeTet(0,1,-1);
+		//makeTet(1,3,-1);
+		//makeTet(1,1,2);*/
 
 		Debug.Log(globalTetCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
@@ -79,24 +76,36 @@ public class tetGen : TetrahedronData
 		tetIdsMesh[4+4*globalTetCount+2] = max2ID;
 		tetIdsMesh[4+4*globalTetCount+3] = max1ID;
 
-		tetEdgeIdsMesh[12+6*globalTetCount] = max3ID;
-		tetEdgeIdsMesh[12+6*globalTetCount+1] = 4+globalTetCount;
-		tetEdgeIdsMesh[12+6*globalTetCount+2] = max2ID;
-		tetEdgeIdsMesh[12+6*globalTetCount+3] = 4+globalTetCount;
-		tetEdgeIdsMesh[12+6*globalTetCount+4] = max1ID;
-		tetEdgeIdsMesh[12+6*globalTetCount+5] = 4+globalTetCount;
+		tetEdgeIdsMesh[12+12*globalTetCount] = max3ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+1] = 4+globalTetCount;
+		tetEdgeIdsMesh[12+12*globalTetCount+2] = max2ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+3] = 4+globalTetCount;
+		tetEdgeIdsMesh[12+12*globalTetCount+4] = max1ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+5] = 4+globalTetCount;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount] = 4+globalTetCount;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+1] = max3ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+2] = max1ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+6] = max2ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+7] = max3ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+8] = max3ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+9] = max1ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+10] = max1ID;
+		tetEdgeIdsMesh[12+12*globalTetCount+11] = max2ID;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+3] = 4+globalTetCount;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+4] = max1ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+5] = max2ID;
 
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+6] = 4+globalTetCount;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+7] = max2ID;
-		tetSurfaceTriIdsMesh[12+9*globalTetCount+8] = max3ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+1] = max3ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+2] = max1ID;
+
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+3] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+4] = max1ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+5] = max2ID;
+
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+6] = 4+globalTetCount;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+7] = max2ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+8] = max3ID;
+
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+9] = max1ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+10] = max2ID;
+		tetSurfaceTriIdsMesh[12+12*globalTetCount+11] = max3ID;
 		globalTetCount++;
     }
 
@@ -145,10 +154,15 @@ public class tetGen : TetrahedronData
     //Vertices (x, y, z) for the first tetrahedral
     private float[] verts =
 	{
-		0,0,1,
-		0,1,0,
+		0.5f,1,0.86602540378f,
+		0.5f,1.86602540378f,0.28867513459f,
+		1,1,0,
+		0,1,0
+
+		/*0,0,0,
 		1,0,0,
-		0,0,0
+		0.5f,0,Mathf.Sqrt(3/4),
+		0.5f,Mathf.Sqrt(3/4),Mathf.Sqrt(3/4)/2*/
 	};
 
 	//Provides the ID position of the vertices that make up the tetrahedral voxel

@@ -22,6 +22,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float[] restVolumes;
 	//The length of an undeformed tetrahedron edge
 	private readonly float[] restEdgeLengths;
+	private readonly float[] restEdgeLengthsOriginal;
+
 	//Inverese mass w = 1/m where m is how much mass is connected to a particle
 	//If a particle is fixed we set its mass to 0
 	private readonly float[] invMass;
@@ -37,8 +39,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -49,7 +51,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//alpha = 0 means infinitely stiff (hard)
 	private readonly float edgeCompliance = 0f;
 	//Should be 0 or the mesh becomes very flat even for small values 
-	private readonly float volCompliance = 0.0f;
+	private readonly float volCompliance = 0.001f;
 
 	//Environment collision data 
 	private readonly float floorHeight = -0.01f;
@@ -88,8 +90,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
-
 		restEdgeLengths = new float[numEdges];
+		restEdgeLengthsOriginal = new float[numEdges];
 
 		//Fill the arrays
 		FillArrays(meshScale, volScale);
@@ -150,6 +152,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			int id1 = tetEdgeIds[2 * i + 1];
 
 			restEdgeLengths[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
+			restEdgeLengthsOriginal[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
 		}
 	}
 
@@ -234,7 +237,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			vel[i] += dt * gravity;
 			//Save old pos
 			prevPos[i] = pos[i];
-
 			//Update pos
 			pos[i] += dt * vel[i];
 		}
@@ -336,8 +338,8 @@ public class SoftBodySimulationVectors : IGrabbable
 			Vector3 gradC = id0_minus_id1 / l;
 			float l_rest;
 			
-			l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
-
+			l_rest = restEdgeLengths[i];
+			//l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
 			float C = l - l_rest;
 
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
@@ -384,12 +386,10 @@ public class SoftBodySimulationVectors : IGrabbable
                 Vector3 id1_minus_id0 = pos[id1] - pos[id0];
 				//(x3 - x2)
 				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-
 				//(x4 - x2)x(x3 - x2)
 				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
 
-				//Multiplying by 1/6 in the denominator is the same as multiplying by 6 in the numerator
-				//Im not sure why hes doing it... maybe because alpha should not be affected by it?  
+				//Dividing by 6 due to the volume equation for a Tetrahedron
 				Vector3 gradC = cross * (1f / 6f);
 
 				gradients[j] = gradC;
@@ -399,20 +399,26 @@ public class SoftBodySimulationVectors : IGrabbable
 			}
 
 			//All vertices are fixed so dont simulate
-			if (wTimesGrad == 0f)
+			if (wTimesGrad == 0f) 
 			{;
 				continue;
 			}
 
 			float vol = GetTetVolume(i);
 			float restVol;
-			restVol = restVolumes[i]*volScale;
+			//restVol = restVolumes[i];
+			//restVol = restVolumes[i]*volScale;
+
+			if(i==0)
+			{
+				restVol = restVolumes[i]*volScale;
+			}
+			else
+			{
+				restVol = restVolumes[i];
+			}
 
 			float C = vol - restVol;
-
-			//The guy in the video is dividing by 6 in the code but multiplying in the video
-			//C *= 6f;
-
 			float lambda = -C / (wTimesGrad + alpha);
 			
             //Move each vertex
@@ -424,7 +430,21 @@ public class SoftBodySimulationVectors : IGrabbable
 				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
 				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
+
+			//Adding this in to decouple the edge length constraint and the volume constraint. However then requires something to keep the tet shape.
+			/*for (int k = 0; k < restEdgeLengths.Length; k++)
+			{
+				int id0 = tetEdgeIds[2 * k + 0];
+				int id1 = tetEdgeIds[2 * k + 1];
+
+				restEdgeLengths[k] = Vector3.Magnitude(pos[id0] - pos[id1]);
+			}*/
 		}
+	}
+
+	private void SolvePressure(float compliance, float dt, float presScale)
+	{
+
 	}
 
 	//Collision with invisible walls and floor
