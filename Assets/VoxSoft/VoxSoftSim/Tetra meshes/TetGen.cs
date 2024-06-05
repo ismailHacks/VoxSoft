@@ -181,6 +181,7 @@ public class tetGen : TetrahedronData
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
 	private int[] tetSurfaceTriIds =
 	{
-		0,1,3, 1,2,3, 0,3,2, 0,2,1
+		//0,1,3, 1,2,3, 0,3,2, 0,2,1 //This was the one made by me, the below matches that order in tetrahedronData
+		1,3,2, 0,2,3, 0,3,1, 0,1,2
 	};
 }

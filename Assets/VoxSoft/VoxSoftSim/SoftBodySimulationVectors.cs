@@ -16,6 +16,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
+	private readonly Vector3[] velF;
+
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -29,6 +31,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float[] invMass;
 	//Should be global so we don't have to create them a million times
 	private readonly Vector3[] gradients = new Vector3[4];
+	private readonly Vector3[] gradientsFacePressure = new Vector3[4];
+
 
 	//The Unity mesh to display the soft body mesh
 	private Mesh softBodyMesh;
@@ -49,9 +53,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
 	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0f;
+	private readonly float edgeCompliance = 0.1f;
 	//Should be 0 or the mesh becomes very flat even for small values 
-	private readonly float volCompliance = 0.001f;
+	private readonly float volCompliance = 0.1f;
 
 	//Environment collision data 
 	private readonly float floorHeight = -0.01f;
@@ -87,6 +91,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		pos = new Vector3[numParticles];
 		prevPos = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
+		velF = new Vector3[numParticles];
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
@@ -193,6 +198,21 @@ public class SoftBodySimulationVectors : IGrabbable
 			//Update the visual mesh
 			UpdateMesh();
 		}
+		
+		for (int i = 0; i < numTets; i++)
+		{	
+			for (int j = 0; j < 4; j++)
+			{
+                //The 3 opposite vertices ids
+                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+			
+				Debug.DrawRay(pos[id0], gradientsFacePressure[j], Color.black);
+				Debug.DrawRay(pos[id1], gradientsFacePressure[j], Color.black);
+				Debug.DrawRay(pos[id2], gradientsFacePressure[j], Color.black);
+			}
+		}
 	}
 
 	public Mesh MyOnDestroy()
@@ -212,7 +232,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		for (int step = 0; step < numSubSteps; step++)
 		{		
 			PreSolve(sdt, gravity);
-
+			//Debug.Log(" 1. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3] + " | ");
 			SolveConstraints(sdt, volScale);
 
 			HandleEnvironmentCollision();
@@ -233,10 +253,10 @@ public class SoftBodySimulationVectors : IGrabbable
 				continue;
 			}
 
-			//Update vel
-			vel[i] += dt * gravity;
 			//Save old pos
 			prevPos[i] = pos[i];
+			//Update vel
+			vel[i] += dt * gravity;
 			//Update pos
 			pos[i] += dt * vel[i];
 		}
@@ -255,8 +275,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		SolveEdges(edgeCompliance, dt, volScale);
-		SolveVolumes(volCompliance, dt, volScale);
+		//SolvePressure(volCompliance, dt, volScale);
+		//Debug.Log(" 4. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
+		SolveEdges(edgeCompliance, dt);
+		//Debug.Log(" 2. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
+		SolveVolumes(volCompliance, dt);
+		//Debug.Log(" 3. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
+		SolvePressure(dt, volScale);
 	}
 
 	//Environment collision handling
@@ -295,7 +320,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
 	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
 	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
-	private void SolveEdges(float compliance, float dt, float volScale)
+	private void SolveEdges(float compliance, float dt)
 	{
 		float alpha = compliance / (dt * dt);
 
@@ -344,6 +369,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
 			float lambda = -C / (wTot + alpha);
+			
 
 			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
 			pos[id0] += lambda * w0 * gradC;//+ (Mathf.Pow(volScale, 1/3) * gradC)
@@ -363,7 +389,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
 	//delta_xi = -lambda * w_i * grad_Ci
 	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
-	private void SolveVolumes(float compliance, float dt, float volScale)
+	private void SolveVolumes(float compliance, float dt)
 	{
 		float alpha = compliance / (dt * dt);
 
@@ -390,7 +416,9 @@ public class SoftBodySimulationVectors : IGrabbable
 				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
 
 				//Dividing by 6 due to the volume equation for a Tetrahedron
-				Vector3 gradC = cross * (1f / 6f);
+				//There may be something wrong here as the gradient is not normalized or scaled to account for t
+				//Vector3 gradC = cross * (1f / 6f);
+				Vector3 gradC = cross;
 
 				gradients[j] = gradC;
 
@@ -406,19 +434,9 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			float vol = GetTetVolume(i);
 			float restVol;
-			//restVol = restVolumes[i];
-			//restVol = restVolumes[i]*volScale;
+			restVol = restVolumes[i];
 
-			if(i==0)
-			{
-				restVol = restVolumes[i]*volScale;
-			}
-			else
-			{
-				restVol = restVolumes[i];
-			}
-
-			float C = vol - restVol;
+			float C = 6*(vol - restVol);
 			float lambda = -C / (wTimesGrad + alpha);
 			
             //Move each vertex
@@ -430,21 +448,67 @@ public class SoftBodySimulationVectors : IGrabbable
 				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
 				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
-
-			//Adding this in to decouple the edge length constraint and the volume constraint. However then requires something to keep the tet shape.
-			/*for (int k = 0; k < restEdgeLengths.Length; k++)
-			{
-				int id0 = tetEdgeIds[2 * k + 0];
-				int id1 = tetEdgeIds[2 * k + 1];
-
-				restEdgeLengths[k] = Vector3.Magnitude(pos[id0] - pos[id1]);
-			}*/
 		}
 	}
 
-	private void SolvePressure(float compliance, float dt, float presScale)
+	private void SolvePressure(float dt, float presScale)
 	{
+		//1. Find particles in a single triangle face
+		//2. Find the normal to that triangle
+		//3. Find the force acting on the face and the mass of each particle
+		//4. Calculate acceleration and add to that face
 
+
+		//1 and 2
+		for (int i = 0; i < numTets; i++)
+		{
+			//Foreach vertex in a plane
+			for (int j = 0; j < 4; j++)
+			{
+				int idThis = tetIds[4 * i + j];
+
+                //The 3 opposite vertices ids
+                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+
+                //(x4 - x2)
+                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
+				//(x3 - x2)
+				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
+				//(x4 - x2)x(x3 - x2)
+				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
+
+				Vector3 id1_minus_id0_raw = pos[id1] - pos[id0];
+				//(x3 - x2)
+				Vector3 id2_minus_id0_raw = pos[id2] - pos[id0];
+
+
+				float faceArea = Vector3.Cross(id1_minus_id0, id2_minus_id0).magnitude*0.5f;
+
+				//Dividing by 6 due to the volume equation for a Tetrahedron
+				//There may be something wrong here as the gradient is not normalized or scaled to account for t
+				//Vector3 gradC = cross * (1f / 6f);
+
+				gradientsFacePressure[j] = cross;
+
+				//Vector3 vel_1 = dt * gradientsPressure[j].normalized * (presScale-1);
+				//Vector3 vel_1 = presScale*dt*gradientsFacePressure[j].normalized;
+
+				velF[id0] = (presScale*faceArea/3*gradientsFacePressure[j].normalized)/invMass[id0]*dt;
+				velF[id1] = (presScale*faceArea/3*gradientsFacePressure[j].normalized)/invMass[id1]*dt;
+				velF[id2] = (presScale*faceArea/3*gradientsFacePressure[j].normalized)/invMass[id2]*dt;
+
+				//Debug.Log(invMass[id0] + " - " + invMass[id1] + " - " + invMass[id2]);
+				//Debug.Log(velF[id0] + " - " + velF[id1] + " - " + velF[id2]);
+				//Debug.Log(pos[id0] + " - " + pos[id1] + " - " + pos[id2]);
+				Debug.Log(faceArea);
+				
+				pos[id0] += velF[id0]*dt;
+				pos[id1] += velF[id1]*dt;
+				pos[id2] += velF[id2]*dt;
+			}
+		}
 	}
 
 	//Collision with invisible walls and floor
