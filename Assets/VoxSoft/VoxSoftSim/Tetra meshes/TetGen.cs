@@ -31,7 +31,7 @@ public class tetGen : TetrahedronData
 		//makeTet(1,3,-1);
 		//makeTet(1,1,2);*/
 
-		Debug.Log(globalTetCount);
+		//Debug.Log(globalTetCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
@@ -154,10 +154,10 @@ public class tetGen : TetrahedronData
     //Vertices (x, y, z) for the first tetrahedral
     private float[] verts =
 	{
-		0.5f,1,0.86602540378f,
-		0.5f,1.86602540378f,0.28867513459f,
-		1,1,0,
-		0,1,0
+		0.5f,5,0.86602540378f,
+		0.5f,5.81649658092f,0.28867513459f,
+		1,5,0,
+		0,5,0
 
 		/*0,0,0,
 		1,0,0,
