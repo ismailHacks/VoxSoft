@@ -15,9 +15,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Same as in ball physics
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
+	private readonly Vector3[] nodeForce;
+	private readonly Vector3[] accel;
 	private readonly Vector3[] vel;
-	private readonly Vector3[] velF;
-
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -43,8 +43,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -90,8 +90,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		//Has to be done in the constructor because readonly
 		pos = new Vector3[numParticles];
 		prevPos = new Vector3[numParticles];
+		nodeForce = new Vector3[numParticles];
+		accel = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
-		velF = new Vector3[numParticles];
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
@@ -235,6 +236,8 @@ public class SoftBodySimulationVectors : IGrabbable
 			//Debug.Log(" 1. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3] + " | ");
 			SolveConstraints(sdt, volScale);
 
+			PosMove(dt);
+
 			HandleEnvironmentCollision();
 
 			PostSolve(sdt);
@@ -255,9 +258,10 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//Save old pos
 			prevPos[i] = pos[i];
+			nodeForce[i] = gravity*1/invMass[i];
+			Debug.Log(nodeForce[0]);
 			//Update vel
-			vel[i] += dt * gravity;
-			//Debug.Log(vel[i]);
+			//vel[i] += dt * gravity;
 			//Update pos
 			//pos[i] += dt * vel[i];
 		}
@@ -278,11 +282,11 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		SolvePressure(dt, volScale);
+		//SolvePressure(dt, volScale);
 		//Debug.Log(" 4. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
-		SolveEdges(edgeCompliance, dt);
+		//SolveEdges(edgeCompliance, dt);
 		//Debug.Log(" 2. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
-		SolveVolumes(volCompliance, dt);
+		//SolveVolumes(volCompliance, dt);
 		//Debug.Log(" 3. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
 		//SolvePressure(dt, volScale);
 	}
@@ -296,11 +300,21 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	private void PosMove(float dt)
+	{
+		float oneOverdt = 1f / dt;
+		for (int i = 0; i < numParticles; i++)
+		{
+			accel[i] = nodeForce[i]*invMass[i];
+			vel[i] += accel[i]*dt;
+			pos[i] += vel[i]*dt;
+		}
+	}
+
 	//Fix velocity
 	private void PostSolve(float dt)
 	{
 		float oneOverdt = 1f / dt;
-	
 		//For each particle
 		for (int i = 0; i < numParticles; i++)
 		{
@@ -323,22 +337,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
 	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
 	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
-	private void SolveEdges(float compliance, float dt)
+	private void SolveEdges(float k, float dt)
 	{
-		float alpha = compliance / (dt * dt);
-
-		/*Vector3[] posDeltasEdges0 = new Vector3[numEdges];
-		Vector3[] posDeltasEdges1 = new Vector3[numEdges];
-		
-		for (int k = 0; k < numEdges; k++)
-		{
-			posDeltasEdges0[k] = new Vector3(0,0,0);
-			posDeltasEdges1[k] = new Vector3(0,0,0);
-		}*/
-
-		//For each edge
-		//Debug.Log(numEdges);
-
 		for (int i = 0; i < numEdges; i++)
 		{
 			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
@@ -379,23 +379,9 @@ public class SoftBodySimulationVectors : IGrabbable
 			//l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
 			float C = l - l_rest;
 
-			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
-			float lambda = -C / (wTot + alpha);
-			
-			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-			pos[id0] += lambda * w0 * gradC;//+ (Mathf.Pow(volScale, 1/3) * gradC)
-			pos[id1] += -lambda * w1 * gradC;
-			//posDeltasEdges0[id0] += lambda * w0 * gradC;
-			//posDeltasEdges1[id1] += -lambda * w1 * gradC;
+			nodeForce[id0] = nodeForce[id0] + (k*C*gradC);
+			nodeForce[id1] = nodeForce[id1] - (k*C*gradC);
 		}
-		/*for (int j = 0; j < numEdges; j++)
-		{
-			int id = tetEdgeIds[2 * j + 0];
-			pos[id] += posDeltasEdges0[id];
-			pos[id+1] += posDeltasEdges1[id];
-			posDeltasEdges0[id] = new Vector3(0,0,0);
-			posDeltasEdges1[id] = new Vector3(0,0,0);
-		}*/
 	}
 
 	//TODO: This method is the bottleneck
@@ -536,30 +522,15 @@ public class SoftBodySimulationVectors : IGrabbable
 				Vector3 accelid1 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id1];
 				Vector3 accelid2 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id2];
 
-				//Debug.Log(id0 + " | " + vel[id0] + " | " + vel[id0]*dt);
 				vel[id0] = vel[id0]*dt + accelid0*dt*dt;
 				vel[id1] = vel[id1]*dt + accelid1*dt*dt;
 				vel[id2] = vel[id2]*dt + accelid2*dt*dt;
 
-				/*posDeltas[id0] += velF[id0]*dt;
-				posDeltas[id1] += velF[id1]*dt;
-				posDeltas[id2] += velF[id2]*dt;*/
-
 				posDeltas[id0] += vel[id0];
 				posDeltas[id1] += vel[id1];
 				posDeltas[id2] += vel[id2];
-				
-				//Debug.Log(invMass[id0] + " - " + invMass[id1] + " - " + invMass[id2]);
-				//Debug.Log(velF[id0] + " - " + velF[id1] + " - " + velF[id2]);
-				//Debug.Log(pos[id0] + " - " + pos[id1] + " - " + pos[id2]);
-				//Debug.Log(faceArea);
-				
-				/*pos[id0] += velF[id0]*dt;
-				pos[id1] += velF[id1]*dt;
-				pos[id2] += velF[id2]*dt;*/
 			}
-			//Debug.Log(vel[1].x + " - " + vel[1].y + " - " + vel[1].z);
-			//Debug.Log(posDeltas[1]);
+
 			
 			for (int j = 0; j < 4; j++)
             {
