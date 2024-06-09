@@ -13,7 +13,11 @@ public class SoftBodyController : MonoBehaviour
     
     public Texture2D cursorTexture;
 
-    public float volScale = 0;
+    public float springConstant = 0;
+    public float damperConstant = 0;
+    public float volConstant = 0;
+
+
 
 
     //Private
@@ -69,7 +73,7 @@ public class SoftBodyController : MonoBehaviour
 
             mat.color = colors[Random.Range(0, colors.Length)];
             
-            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, meshScale, volScale);
+            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, meshScale);
 
             allSoftBodies.Add(softBodySim);
         }
@@ -130,7 +134,7 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(volScale);
+            softBody.MyFixedUpdate(springConstant, damperConstant, volConstant);
         }
 
         //Timers.Display();

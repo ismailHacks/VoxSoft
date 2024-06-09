@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class tetGen : TetrahedronData
 {
-	private static int noTets = 1;
+	private static int noTets = 2;
 	private static float tetScale = 0.2f;
 	private int globalTetCount = 0;
 
@@ -27,7 +27,7 @@ public class tetGen : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		seedTet();
-		//makeTet(0,1,-1);
+		makeTet(2,3,-2);
 		//makeTet(1,3,-1);
 		//makeTet(1,1,2);*/
 
@@ -134,7 +134,7 @@ public class tetGen : TetrahedronData
 			averageVertexDistance = ((currentPos-vertexPos1).magnitude + (currentPos-vertexPos2).magnitude + (currentPos-vertexPos3).magnitude)/3;
 			
 			//float vertexDistance = Mathf.Abs((currentPos - measureToPlanePos).magnitude);
-            Debug.Log("Av PlD" + i + " - " + averageVertexDistance);
+            //Debug.Log("Av PlD" + i + " - " + averageVertexDistance);
 			if (averageVertexDistance != 0)
 			{
 				if (averageVertexDistance < maxAverage || maxAverage == 0)
@@ -154,10 +154,10 @@ public class tetGen : TetrahedronData
     //Vertices (x, y, z) for the first tetrahedral
     private float[] verts =
 	{
-		0.5f,5,0.86602540378f,
-		0.5f,5.81649658092f,0.28867513459f,
-		1,5,0,
-		0,5,0
+		0.5f,1,0.86602540378f,
+		0.5f,1.81649658092f,0.28867513459f,
+		1,1,0,
+		0,1,0
 
 		/*0,0,0,
 		1,0,0,
@@ -181,7 +181,7 @@ public class tetGen : TetrahedronData
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
 	private int[] tetSurfaceTriIds =
 	{
-		//0,1,3, 1,2,3, 0,3,2, 0,2,1 //This was the one made by me, the below matches that order in tetrahedronData
-		1,3,2, 0,2,3, 0,3,1, 0,1,2
+		0,1,3, 1,2,3, 0,3,2, 0,2,1 //This was the one made by me, the below matches that order in tetrahedronData
+		//1,3,2, 0,2,3, 0,3,1, 0,1,2
 	};
 }

@@ -51,11 +51,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private bool simulate = true;
 
 	//Soft body behavior settings
-	//Compliance (alpha) is the inverse of physical stiffness (k)
-	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0.8f;
-	//Should be 0 or the mesh becomes very flat even for small values 
-	private readonly float volCompliance = 0.8f;
 
 	//Environment collision data 
 	private readonly float floorHeight = -0.01f;
@@ -72,7 +67,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 
 
-	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float meshScale = 2f, float volScale = 1f)
+	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float meshScale = 2f)
 	{
 		//Tetra data structures
 		this.tetraData = tetraData;
@@ -100,7 +95,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		restEdgeLengthsOriginal = new float[numEdges];
 
 		//Fill the arrays
-		FillArrays(meshScale, volScale);
+		FillArrays(meshScale);
 
 		//Move the mesh to its start position
 		Translate(startPos);
@@ -110,7 +105,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Fill the data structures needed or soft body physics
-	private void FillArrays(float meshScale, float volScale)
+	private void FillArrays(float meshScale)
 	{
 		//[x0, y0, z0, x1, y1, z1, ...]
 		float[] flatVerts = tetraData.GetVerts;
@@ -162,7 +157,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	public void MyFixedUpdate(float volScale)
+	public void MyFixedUpdate(float springConstant, float damperConstant, float volConstant)
 	{
 		if (!simulate)
 		{
@@ -173,7 +168,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//ShrinkWalls(dt);
 
-		Simulate(dt, volScale);
+		Simulate(dt, springConstant, damperConstant, volConstant);
 	}
 
 	public void MyUpdate()
@@ -221,12 +216,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		return softBodyMesh;
 	}
 
-	//
-	// Simulation
-	//
 
-	//Main soft body simulation loop
-	void Simulate(float dt, float volScale)
+	void Simulate(float dt, float springConstant, float damperConstant, float volConstant)
 	{
 		float sdt = dt / numSubSteps;
 
@@ -234,17 +225,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		{		
 			PreSolve(sdt, gravity);
 			//Debug.Log(" 1. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3] + " | ");
-			SolveConstraints(sdt, volScale);
+			SolveConstraints(sdt, springConstant, damperConstant, volConstant);
 
-			PosMove(dt);
+			PosMove(dt, 0.01f);
 
 			HandleEnvironmentCollision();
-
-			PostSolve(sdt);
 		}
 	}
-
-	//Move the particles and handle environment collision
+ 
 	void PreSolve(float dt, Vector3 gravity)
 	{
 		//For each particle
@@ -258,86 +246,23 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//Save old pos
 			prevPos[i] = pos[i];
-			nodeForce[i] = gravity*1/invMass[i];
-			Debug.Log(nodeForce[0]);
+			nodeForce[i] = gravity*(1/invMass[i]);
+			//Debug.Log(nodeForce[0].y);
 			//Update vel
 			//vel[i] += dt * gravity;
 			//Update pos
 			//pos[i] += dt * vel[i];
 		}
-		//Debug.Log(vel[1].x + " | " + vel[1].y + " | " + vel[1].z);
-		//Debug.Log(vel[1].y);
 	}
 
-	//Handle the soft body physics
-	private void SolveConstraints(float dt, float volScale)
+	private void SolveConstraints(float dt, float springConstant, float damperConstant, float volConstant)
 	{
-		//Constraints
-		//Enforce constraints by moving each vertex: x = x + deltaX
-		//- Correction vector: deltaX = lambda * w * gradC
-		//- Inverse mass: w
-		//- lambda = -C / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + ... + wn * |grad_C|^2 + (alpha / dt^2)) where 1, 2, ... n is the number of participating particles in the constraint.
-		//		- n = 2 if we have an edge, n = 4 if we have a tetra
-		//		- |grad_C1|^2 is the squared length
-		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
-		//- Compliance (inverse stiffness): alpha
-
-		//SolvePressure(dt, volScale);
-		//Debug.Log(" 4. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
-		//SolveEdges(edgeCompliance, dt);
-		//Debug.Log(" 2. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
+		SolveEdges(springConstant, damperConstant, dt);
 		//SolveVolumes(volCompliance, dt);
-		//Debug.Log(" 3. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
 		//SolvePressure(dt, volScale);
 	}
 
-	//Environment collision handling
-	private void HandleEnvironmentCollision()
-	{
-		for (int i = 0; i < numParticles; i++)
-		{
-			EnvironmentCollision(i);
-		}
-	}
-
-	private void PosMove(float dt)
-	{
-		float oneOverdt = 1f / dt;
-		for (int i = 0; i < numParticles; i++)
-		{
-			accel[i] = nodeForce[i]*invMass[i];
-			vel[i] += accel[i]*dt;
-			pos[i] += vel[i]*dt;
-		}
-	}
-
-	//Fix velocity
-	private void PostSolve(float dt)
-	{
-		float oneOverdt = 1f / dt;
-		//For each particle
-		for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-
-			//v = (x - xPrev) / dt
-			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}
-	}
-
-	//Solve distance constraint
-	//2 particles:
-	//Positions: x0, x1
-	//Inverse mass: w0, w1
-	//Rest length: l_rest
-	//Current length: l
-	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
-	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
-	private void SolveEdges(float k, float dt)
+	private void SolveEdges(float springConstant, float damperConstant, float dt)
 	{
 		for (int i = 0; i < numEdges; i++)
 		{
@@ -376,26 +301,16 @@ public class SoftBodySimulationVectors : IGrabbable
 			float l_rest;
 			
 			l_rest = restEdgeLengths[i];
-			//l_rest = restEdgeLengths[i]*Mathf.Pow(volScale, 1/3f);
 			float C = l - l_rest;
 
-			nodeForce[id0] = nodeForce[id0] + (k*C*gradC);
-			nodeForce[id1] = nodeForce[id1] - (k*C*gradC);
+			//Velocity change not working due to not just edge damping taking place
+			//nodeForce[id0] = nodeForce[id0] - (springConstant*C*gradC) - (vel[id0]*damperConstant);
+			//nodeForce[id1] = nodeForce[id1] + (springConstant*C*gradC) - (vel[id0]*damperConstant);
+			nodeForce[id0] = nodeForce[id0] - (springConstant*C*gradC);
+			nodeForce[id1] = nodeForce[id1] + (springConstant*C*gradC);
 		}
 	}
 
-	//TODO: This method is the bottleneck
-	//Solve volume constraint
-	//Constraint function is now defined as C = 6(V - V_rest). The 6 is to make the equation simpler because of volume
-	//4 gradients:
-	//grad_C1 = (x4-x2)x(x3-x2) <- direction perpendicular to the triangle opposite of p1 to maximally increase the volume when moving p1
-	//grad_C2 = (x3-x1)x(x4-x1)
-	//grad_C3 = (x4-x1)x(x2-x1)
-	//grad_C4 = (x2-x1)x(x3-x1)
-	//V = 1/6 * ((x2-x1)x(x3-x1))*(x4-x1)
-	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
-	//delta_xi = -lambda * w_i * grad_Ci
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
 	private void SolveVolumes(float compliance, float dt)
 	{
 		float alpha = compliance / (dt * dt);
@@ -551,6 +466,45 @@ public class SoftBodySimulationVectors : IGrabbable
 			//v = (x - xPrev) / dt
 			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
 		}*/
+	}
+
+	private void PosMove(float dt, float damperConstant)
+	{
+		float oneOverdt = 1f / dt;
+		for (int i = 0; i < numParticles; i++)
+		{
+			nodeForce[i] -= vel[i]*damperConstant;
+			accel[i] = nodeForce[i]*invMass[i];
+			vel[i] += accel[i]*dt;
+			pos[i] += vel[i]*dt;
+		}
+	}
+
+
+	//Environment collision handling
+	private void HandleEnvironmentCollision()
+	{
+		for (int i = 0; i < numParticles; i++)
+		{
+			EnvironmentCollision(i);
+		}
+	}
+
+	//Fix velocity
+	private void PostSolve(float dt)
+	{
+		float oneOverdt = 1f / dt;
+		//For each particle
+		for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] == 0f)
+			{
+				continue;
+			}
+
+			//v = (x - xPrev) / dt
+			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
+		}
 	}
 
 	//Collision with invisible walls and floor
