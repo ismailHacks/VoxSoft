@@ -17,11 +17,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] nodeForce;
 	private readonly Vector3[] accel;
-	private readonly Vector3[] accelEdge;
 	private readonly Vector3[] vel;
-	private readonly Vector3[] velEdge;
-	private readonly Vector3[] velEdgePrev;
-
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -29,7 +25,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//The length of an undeformed tetrahedron edge
 	private readonly float[] restEdgeLengths;
 	private readonly float[] prevEdgeLengths;
-	private readonly float[] velEdgeL;
+	private readonly float[] velEdge;
 
 
 	//private readonly float[] restEdgeLengthsOriginal;
@@ -51,8 +47,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -95,16 +91,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		prevPos = new Vector3[numParticles];
 		nodeForce = new Vector3[numParticles];
 		accel = new Vector3[numParticles];
-		accelEdge = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
-		velEdge = new Vector3[numParticles];
-		velEdgePrev = new Vector3[numParticles];
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
 		restEdgeLengths = new float[numEdges];
 		prevEdgeLengths = new float[numEdges];
-		velEdgeL = new float[numEdges];
+		velEdge = new float[numEdges];
 
 		//restEdgeLengthsOriginal = new float[numEdges];
 
@@ -173,7 +166,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	public void MyFixedUpdate(float springConstant, float damperConstant, float volConstant)
+	public void MyFixedUpdate(float springConstant, float damperConstant, float volConstant, float pressure)
 	{
 		if (!simulate)
 		{
@@ -184,7 +177,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//ShrinkWalls(dt);
 
-		Simulate(dt, springConstant, damperConstant, volConstant);
+		Simulate(dt, springConstant, damperConstant, volConstant, pressure);
 	}
 
 	public void MyUpdate()
@@ -220,9 +213,9 @@ public class SoftBodySimulationVectors : IGrabbable
                 int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
                 int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
 			
-				Debug.DrawRay(pos[id0], gradientsFacePressure[j].normalized, Color.red);
-				Debug.DrawRay(pos[id1], gradientsFacePressure[j].normalized, Color.green);
-				Debug.DrawRay(pos[id2], gradientsFacePressure[j].normalized, Color.blue);
+				Debug.DrawRay(pos[id0], gradientsFacePressure[j].normalized*0.2f, Color.red);
+				Debug.DrawRay(pos[id1], gradientsFacePressure[j].normalized*0.2f, Color.green);
+				Debug.DrawRay(pos[id2], gradientsFacePressure[j].normalized*0.2f, Color.blue);
 			}
 		}
 	}
@@ -233,7 +226,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 
-	void Simulate(float dt, float springConstant, float damperConstant, float volConstant)
+	void Simulate(float dt, float springConstant, float damperConstant, float volConstant, float pressure)
 	{
 		float sdt = dt / numSubSteps;
 
@@ -241,7 +234,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		{		
 			PreSolve(sdt, gravity);
 			//Debug.Log(" 1. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3] + " | ");
-			SolveConstraints(sdt, springConstant, damperConstant, volConstant);
+			SolveConstraints(sdt, springConstant, damperConstant, volConstant, pressure);
 
 			PosMove(dt, 0.01f);
 
@@ -272,14 +265,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	private void SolveConstraints(float dt, float springConstant, float damperConstant, float volConstant)
+	private void SolveConstraints(float dt, float springConstant, float damperConstant, float volConstant, float pressure)
 	{
-		SolveEdges(springConstant, damperConstant, dt);
-		//SolveVolumes(volCompliance, dt);
-		//SolvePressure(dt, volScale);
+		SolveEdges(dt, springConstant, damperConstant);
+		SolveVolumes(dt, volConstant);
+		SolvePressure(dt, pressure);
 	}
 
-	private void SolveEdges(float springConstant, float damperConstant, float dt)
+	private void SolveEdges(float dt, float springConstant, float damperConstant)
 	{
 		for (int i = 0; i < numEdges; i++)
 		{
@@ -287,7 +280,8 @@ public class SoftBodySimulationVectors : IGrabbable
 			int id0 = tetEdgeIds[2 * i + 0];
 			int id1 = tetEdgeIds[2 * i + 1];
 
-			float w0 = invMass[id0];
+			//Need to figure out if this is needed	
+			/*float w0 = invMass[id0];
 			float w1 = invMass[id1];
 
 			float wTot = w0 + w1;
@@ -296,12 +290,9 @@ public class SoftBodySimulationVectors : IGrabbable
 			if (wTot == 0f)
 			{
 				continue;
-			}
+			}*/
 
 			//The current length of the edge l
-
-			//x0-x1
-			//The result is stored in grads array
 			Vector3 id0_minus_id1 = pos[id0] - pos[id1];
 
 			//sqrMargnitude(x0-x1)
@@ -316,25 +307,15 @@ public class SoftBodySimulationVectors : IGrabbable
 			Vector3 gradC = id0_minus_id1 / l;
 			
 			float x = l - restEdgeLengths[i];
-			velEdgeL[id0] += (prevEdgeLengths[i]-x)*dt;
-			//Debug.Log(damperConstant + " - " + velEdgeL[0] + " - " + (velEdgeL[id0]*damperConstant*gradC));
-			prevEdgeLengths[id0] = x;
+			velEdge[i] = (l-prevEdgeLengths[i])/dt;
+			prevEdgeLengths[i] = l;
 
-			//Velocity change not working due to not just edge damping taking place
-			//nodeForce[id0] = nodeForce[id0] - (springConstant*C*gradC) - (vel[id0]*damperConstant);
-			//nodeForce[id1] = nodeForce[id1] + (springConstant*C*gradC) - (vel[id0]*damperConstant);
-			/*accelEdge[id0] = (nodeForce[id0] - (springConstant*x*gradC))*invMass[id0];
-			velEdge[id0] += accelEdge[id0]*dt;
-
-			accelEdge[id1] = (nodeForce[id1] + (springConstant*x*gradC))*invMass[id1];
-			velEdge[id1] += accelEdge[id1]*dt;*/
-
-			nodeForce[id0] = nodeForce[id0] - (springConstant*x*gradC) - (velEdgeL[id0]*damperConstant*gradC);
-			nodeForce[id1] = nodeForce[id1] + (springConstant*x*gradC) + (velEdgeL[id0]*damperConstant*gradC);
+			nodeForce[id0] += -(springConstant*x*gradC) - (velEdge[i]*damperConstant*gradC);
+			nodeForce[id1] += (springConstant*x*gradC) + (velEdge[i]*damperConstant*gradC);
 		}
 	}
 
-	private void SolveVolumes(float volConstant, float dt)
+	private void SolveVolumes(float dt, float volConstant)
 	{
 		//For each tetra
 		for (int i = 0; i < numTets; i++)
@@ -379,36 +360,20 @@ public class SoftBodySimulationVectors : IGrabbable
 			float restVol;
 			restVol = restVolumes[i];
 
-			float C = 6*(vol - restVol);
+			float C = vol - restVol;
 			//float lambda = -C / (wTimesGrad + alpha);
 			
             //Move each vertex
             for (int j = 0; j < 4; j++)
             {
                 int id = tetIds[4 * i + j];
-
-				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
-				//pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
+				nodeForce[id] += C*volConstant*gradients[j];
 			}
 		}
 	}
 
-	private void SolvePressure(float dt, float presScale)
+	private void SolvePressure(float dt, float pressure)
 	{
-		//1. Find particles in a single triangle face
-		//2. Find the normal to that triangle
-		//3. Find the force acting on the face and the mass of each particle
-		//4. Calculate acceleration and add to that face
-		/*float oneOverdt = 1f / dt;
-		for (int i = 0; i < numParticles; i++)
-		{
-			prevPos[i] = pos[i];
-		}*/
-		
-		//Debug.Log("1. = " + vel[1].y*dt);
-		
-		//1 and 2
 		for (int i = 0; i < numTets; i++)
 		{
 			Vector3[] posDeltas = new Vector3[4];
@@ -454,47 +419,18 @@ public class SoftBodySimulationVectors : IGrabbable
 					}
 				}*/
 				
-				Vector3 accelid0 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id0];
-				Vector3 accelid1 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id1];
-				Vector3 accelid2 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id2];
-
-				vel[id0] = vel[id0]*dt + accelid0*dt*dt;
-				vel[id1] = vel[id1]*dt + accelid1*dt*dt;
-				vel[id2] = vel[id2]*dt + accelid2*dt*dt;
-
-				posDeltas[id0] += vel[id0];
-				posDeltas[id1] += vel[id1];
-				posDeltas[id2] += vel[id2];
-			}
-
-			
-			for (int j = 0; j < 4; j++)
-            {
-                int id = tetIds[4 * i + j];
-				pos[id] += posDeltas[id];
-				posDeltas[id] = new Vector3(0,0,0);
+				nodeForce[id0] += ((pressure * faceArea) / 3)*gradientsFacePressure[j].normalized;
+				nodeForce[id1] += ((pressure * faceArea) / 3)*gradientsFacePressure[j].normalized;
+				nodeForce[id2] += ((pressure * faceArea) / 3)*gradientsFacePressure[j].normalized;
 			}
 		}
-
-		//Debug.Log("2. = " + vel[1].y);
-		
-		/*for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-			//v = (x - xPrev) / dt
-			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}*/
 	}
 
 	private void PosMove(float dt, float damperConstant)
 	{
-		float oneOverdt = 1f / dt;
 		for (int i = 0; i < numParticles; i++)
 		{
-			//nodeForce[i] -= vel[i]*damperConstant;
+			nodeForce[i] -= vel[i]*damperConstant;
 			accel[i] = nodeForce[i]*invMass[i];
 			vel[i] += accel[i]*dt;
 			pos[i] += vel[i]*dt;

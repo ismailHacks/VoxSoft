@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class tetGen : TetrahedronData
 {
-	private static int noTets = 2;
+	private static int noTets = 1;
 	private static float tetScale = 0.2f;
 	private int globalTetCount = 0;
 
@@ -27,8 +27,8 @@ public class tetGen : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		seedTet();
-		makeTet(2,3,-2);
-		//makeTet(1,3,-1);
+		//makeTet(2,3,-2);
+		//makeTet(2,3,-1);
 		//makeTet(1,1,2);*/
 
 		//Debug.Log(globalTetCount);
@@ -148,7 +148,7 @@ public class tetGen : TetrahedronData
 			max2ID = tetSurfaceTriIdsMesh[3*maxAverageID+1];
 			max3ID = tetSurfaceTriIdsMesh[3*maxAverageID+2];
         }
-		Debug.Log("Max3 = " + max3ID + " Max2 = " + max2ID + " Max1 = " + max1ID);
+		//Debug.Log("Max3 = " + max3ID + " Max2 = " + max2ID + " Max1 = " + max1ID);
     }
 
     //Vertices (x, y, z) for the first tetrahedral

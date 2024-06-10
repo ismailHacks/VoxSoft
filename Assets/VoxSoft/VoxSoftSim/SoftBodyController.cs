@@ -16,6 +16,8 @@ public class SoftBodyController : MonoBehaviour
     public float springConstant = 0;
     public float damperConstant = 0;
     public float volConstant = 0;
+    public float pressure = 0;
+
 
 
 
@@ -134,7 +136,7 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(springConstant, damperConstant, volConstant);
+            softBody.MyFixedUpdate(springConstant, damperConstant, volConstant, pressure);
         }
 
         //Timers.Display();
