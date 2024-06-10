@@ -17,14 +17,22 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] nodeForce;
 	private readonly Vector3[] accel;
+	private readonly Vector3[] accelEdge;
 	private readonly Vector3[] vel;
+	private readonly Vector3[] velEdge;
+	private readonly Vector3[] velEdgePrev;
+
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
 	private readonly float[] restVolumes;
 	//The length of an undeformed tetrahedron edge
 	private readonly float[] restEdgeLengths;
-	private readonly float[] restEdgeLengthsOriginal;
+	private readonly float[] prevEdgeLengths;
+	private readonly float[] velEdgeL;
+
+
+	//private readonly float[] restEdgeLengthsOriginal;
 
 	//Inverese mass w = 1/m where m is how much mass is connected to a particle
 	//If a particle is fixed we set its mass to 0
@@ -87,12 +95,18 @@ public class SoftBodySimulationVectors : IGrabbable
 		prevPos = new Vector3[numParticles];
 		nodeForce = new Vector3[numParticles];
 		accel = new Vector3[numParticles];
+		accelEdge = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
+		velEdge = new Vector3[numParticles];
+		velEdgePrev = new Vector3[numParticles];
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
 		restEdgeLengths = new float[numEdges];
-		restEdgeLengthsOriginal = new float[numEdges];
+		prevEdgeLengths = new float[numEdges];
+		velEdgeL = new float[numEdges];
+
+		//restEdgeLengthsOriginal = new float[numEdges];
 
 		//Fill the arrays
 		FillArrays(meshScale);
@@ -153,7 +167,9 @@ public class SoftBodySimulationVectors : IGrabbable
 			int id1 = tetEdgeIds[2 * i + 1];
 
 			restEdgeLengths[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
-			restEdgeLengthsOriginal[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
+			prevEdgeLengths[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
+
+			//restEdgeLengthsOriginal[i] = Vector3.Magnitude(pos[id0] - pos[id1]);
 		}
 	}
 
@@ -230,6 +246,8 @@ public class SoftBodySimulationVectors : IGrabbable
 			PosMove(dt, 0.01f);
 
 			HandleEnvironmentCollision();
+
+			PostSolve(dt);
 		}
 	}
  
@@ -247,7 +265,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			//Save old pos
 			prevPos[i] = pos[i];
 			nodeForce[i] = gravity*(1/invMass[i]);
-			//Debug.Log(nodeForce[0].y);
 			//Update vel
 			//vel[i] += dt * gravity;
 			//Update pos
@@ -296,25 +313,29 @@ public class SoftBodySimulationVectors : IGrabbable
 				continue;
 			}
 
-			//(xo-x1) * (1/|x0-x1|) = gradC
 			Vector3 gradC = id0_minus_id1 / l;
-			float l_rest;
 			
-			l_rest = restEdgeLengths[i];
-			float C = l - l_rest;
+			float x = l - restEdgeLengths[i];
+			velEdgeL[id0] += (prevEdgeLengths[i]-x)*dt;
+			//Debug.Log(damperConstant + " - " + velEdgeL[0] + " - " + (velEdgeL[id0]*damperConstant*gradC));
+			prevEdgeLengths[id0] = x;
 
 			//Velocity change not working due to not just edge damping taking place
 			//nodeForce[id0] = nodeForce[id0] - (springConstant*C*gradC) - (vel[id0]*damperConstant);
 			//nodeForce[id1] = nodeForce[id1] + (springConstant*C*gradC) - (vel[id0]*damperConstant);
-			nodeForce[id0] = nodeForce[id0] - (springConstant*C*gradC);
-			nodeForce[id1] = nodeForce[id1] + (springConstant*C*gradC);
+			/*accelEdge[id0] = (nodeForce[id0] - (springConstant*x*gradC))*invMass[id0];
+			velEdge[id0] += accelEdge[id0]*dt;
+
+			accelEdge[id1] = (nodeForce[id1] + (springConstant*x*gradC))*invMass[id1];
+			velEdge[id1] += accelEdge[id1]*dt;*/
+
+			nodeForce[id0] = nodeForce[id0] - (springConstant*x*gradC) - (velEdgeL[id0]*damperConstant*gradC);
+			nodeForce[id1] = nodeForce[id1] + (springConstant*x*gradC) + (velEdgeL[id0]*damperConstant*gradC);
 		}
 	}
 
-	private void SolveVolumes(float compliance, float dt)
+	private void SolveVolumes(float volConstant, float dt)
 	{
-		float alpha = compliance / (dt * dt);
-
 		//For each tetra
 		for (int i = 0; i < numTets; i++)
 		{
@@ -359,7 +380,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			restVol = restVolumes[i];
 
 			float C = 6*(vol - restVol);
-			float lambda = -C / (wTimesGrad + alpha);
+			//float lambda = -C / (wTimesGrad + alpha);
 			
             //Move each vertex
             for (int j = 0; j < 4; j++)
@@ -368,7 +389,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
 				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
-				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
+				//pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
 		}
 	}
@@ -473,7 +494,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		float oneOverdt = 1f / dt;
 		for (int i = 0; i < numParticles; i++)
 		{
-			nodeForce[i] -= vel[i]*damperConstant;
+			//nodeForce[i] -= vel[i]*damperConstant;
 			accel[i] = nodeForce[i]*invMass[i];
 			vel[i] += accel[i]*dt;
 			pos[i] += vel[i]*dt;
