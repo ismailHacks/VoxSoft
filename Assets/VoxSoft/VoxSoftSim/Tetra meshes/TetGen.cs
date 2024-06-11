@@ -7,9 +7,15 @@ using UnityEngine;
 
 public class tetGen : TetrahedronData
 {
-	private static int noTets = 1;
+	private static int noTets = 2;
 	private static float tetScale = 0.2f;
 	private int globalTetCount = 0;
+
+	private static float tetHeight = 0.81649658092f;
+	private static float triHeight = 0.86602540378f;
+	private static float triCentrePointHeight = 0.28867513459f;
+
+
 
 	public float[] vertsMesh = new float[12+3*(noTets-1)];
 	public int[] tetIdsMesh = new int[4*noTets];
@@ -27,7 +33,13 @@ public class tetGen : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		seedTet();
-		//makeTet(2,3,-2);
+
+		/*for (int i = 0; i < 10; i++)
+		{
+			makeTet(1+i, 1, 1);
+		}*/
+
+		makeTet(1.5f,1+tetHeight,triHeight);
 		//makeTet(2,3,-1);
 		//makeTet(1,1,2);*/
 
@@ -61,7 +73,7 @@ public class tetGen : TetrahedronData
 		}
 	}
 
-	private void makeTet(int posX, int posY, int posZ)
+	private void makeTet(float posX, float posY, float posZ)
     {
 		vertsMesh[12+3*globalTetCount] = posX*tetScale;
 		vertsMesh[12+3*globalTetCount+1] = posY*tetScale;
@@ -109,7 +121,7 @@ public class tetGen : TetrahedronData
 		globalTetCount++;
     }
 
-    private void findClosestPlaneVertices(int posX, int posY, int posZ, out int max3ID, out int max2ID, out int max1ID)
+    private void findClosestPlaneVertices(float posX, float posY, float posZ, out int max3ID, out int max2ID, out int max1ID)
     {
 		float averageVertexDistance;
         max3ID = 0;
@@ -154,8 +166,8 @@ public class tetGen : TetrahedronData
     //Vertices (x, y, z) for the first tetrahedral
     private float[] verts =
 	{
-		0.5f,1,0.86602540378f,
-		0.5f,1.81649658092f,0.28867513459f,
+		0.5f,1,triHeight,
+		0.5f,1+tetHeight,triCentrePointHeight,
 		1,1,0,
 		0,1,0
 
