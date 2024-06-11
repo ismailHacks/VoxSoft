@@ -263,13 +263,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		SolvePressure2(dt, volScale);
-		//Debug.Log(" 4. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
+		SolvePressure(dt, volScale);
 		SolveEdges(edgeCompliance, dt);
-		//Debug.Log(" 2. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
 		SolveVolumes(volCompliance, dt);
-		//Debug.Log(" 3. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
-		//SolvePressure2(dt, volScale);
+		//SolvePressure(dt, volScale);
 	}
 
 	//Environment collision handling
@@ -278,24 +275,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		for (int i = 0; i < numParticles; i++)
 		{
 			EnvironmentCollision(i);
-		}
-	}
-
-	//Fix velocity
-	private void PostSolve(float dt)
-	{
-		float oneOverdt = 1f / dt;
-	
-		//For each particle
-		for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-
-			//v = (x - xPrev) / dt
-			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
 		}
 	}
 
@@ -457,124 +436,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	//Integrates a universal pressure on all tetrahedron surfaces
+	//TODO - For some reason the pressure force flips when the tet gets inverted
 	private void SolvePressure(float dt, float presScale)
 	{
-		//1. Find particles in a single triangle face
-		//2. Find the normal to that triangle
-		//3. Find the force acting on the face and the mass of each particle
-		//4. Calculate acceleration and add to that face
-		/*float oneOverdt = 1f / dt;
-		for (int i = 0; i < numParticles; i++)
-		{
-			prevPos[i] = pos[i];
-		}*/
-		
-		//Debug.Log("1. = " + vel[1].y*dt);
-		
-		//1 and 2
-		for (int i = 0; i < numTets; i++)
-		{
-			Vector3[] posDeltas = new Vector3[4];
-			for (int k = 0; k < 4; k++)
-			{
-				posDeltas[k] = new Vector3(0,0,0);
-			}
-
-			//Foreach vertex in a plane
-			for (int j = 0; j < 4; j++)
-			{
-				int idThis = tetIds[4 * i + j];
-
-                //The 3 opposite vertices ids
-                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
-
-                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
-				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
-
-				float faceArea = cross.magnitude*0.5f;
-
-				gradientsFacePressure[j] = cross;
-
-				/*int[] ids = { id0, id1, id2 };
-
-				foreach (int id in ids)
-				{
-					if (invMass[id] == 0)
-					{
-						velF[id] = new Vector3(0, 0, 0);
-					}
-					else
-					{
-						Vector3 accel = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized)/invMass[id];
-						//velF[id] += accel * dt;
-						//Debug.Log(vel[id].x + " - " + vel[id].y + " - " + vel[id].z);
-						vel[id] = vel[id]*dt + 0.5f*accel*dt*dt;
-						//velF[id] = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized) * dt;
-						//Debug.Log(gradientsFacePressure[j]);
-					}
-				}*/
-				
-				Vector3 accelid0 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id0];
-				Vector3 accelid1 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id1];
-				Vector3 accelid2 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id2];
-
-				//Debug.Log(id0 + " | " + vel[id0] + " | " + vel[id0]*dt);
-				vel[id0] = vel[id0]*dt + accelid0*dt*dt;
-				vel[id1] = vel[id1]*dt + accelid1*dt*dt;
-				vel[id2] = vel[id2]*dt + accelid2*dt*dt;
-
-				/*posDeltas[id0] += velF[id0]*dt;
-				posDeltas[id1] += velF[id1]*dt;
-				posDeltas[id2] += velF[id2]*dt;*/
-
-				posDeltas[id0] += vel[id0];
-				posDeltas[id1] += vel[id1];
-				posDeltas[id2] += vel[id2];
-				
-				//Debug.Log(invMass[id0] + " - " + invMass[id1] + " - " + invMass[id2]);
-				//Debug.Log(velF[id0] + " - " + velF[id1] + " - " + velF[id2]);
-				//Debug.Log(pos[id0] + " - " + pos[id1] + " - " + pos[id2]);
-				//Debug.Log(faceArea);
-				
-				/*pos[id0] += velF[id0]*dt;
-				pos[id1] += velF[id1]*dt;
-				pos[id2] += velF[id2]*dt;*/
-			}
-			//Debug.Log(vel[1].x + " - " + vel[1].y + " - " + vel[1].z);
-			//Debug.Log(posDeltas[1]);
-			
-			for (int j = 0; j < 4; j++)
-            {
-                int id = tetIds[4 * i + j];
-				pos[id] += posDeltas[id];
-				posDeltas[id] = new Vector3(0,0,0);
-			}
-		}
-
-		//Debug.Log("2. = " + vel[1].y);
-		
-		/*for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-			//v = (x - xPrev) / dt
-			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}*/
-	}
-
-	private void SolvePressure2(float dt, float presScale)
-	{
 		for (int i = 0; i < numTets; i++)
 		{
 			for (int j = 0; j < 4; j++)
 			{
-				int idThis = tetIds[4 * i + j];
-
 				// The 3 opposite vertices ids
 				int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
 				int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
@@ -615,6 +484,24 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	//Update the velocity after the constrain has been handled
+	private void PostSolve(float dt)
+	{
+		float oneOverdt = 1f / dt;
+	
+		//For each particle
+		for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] == 0f)
+			{
+				continue;
+			}
+
+			//v = (x - xPrev) / dt
+			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
+		}
+	}
+	
 	//Collision with invisible walls and floor
 	private void EnvironmentCollision(int i)
 	{
@@ -831,5 +718,115 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		return pos[grabId];
     }
+
+	private void SolvePressureLegacy(float dt, float presScale)
+	{
+		//1. Find particles in a single triangle face
+		//2. Find the normal to that triangle
+		//3. Find the force acting on the face and the mass of each particle
+		//4. Calculate acceleration and add to that face
+		/*float oneOverdt = 1f / dt;
+		for (int i = 0; i < numParticles; i++)
+		{
+			prevPos[i] = pos[i];
+		}*/
+		
+		//Debug.Log("1. = " + vel[1].y*dt);
+		
+		//1 and 2
+		for (int i = 0; i < numTets; i++)
+		{
+			Vector3[] posDeltas = new Vector3[4];
+			for (int k = 0; k < 4; k++)
+			{
+				posDeltas[k] = new Vector3(0,0,0);
+			}
+
+			//Foreach vertex in a plane
+			for (int j = 0; j < 4; j++)
+			{
+				int idThis = tetIds[4 * i + j];
+
+                //The 3 opposite vertices ids
+                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+
+                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
+				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
+				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
+
+				float faceArea = cross.magnitude*0.5f;
+
+				gradientsFacePressure[j] = cross;
+
+				/*int[] ids = { id0, id1, id2 };
+
+				foreach (int id in ids)
+				{
+					if (invMass[id] == 0)
+					{
+						velF[id] = new Vector3(0, 0, 0);
+					}
+					else
+					{
+						Vector3 accel = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized)/invMass[id];
+						//velF[id] += accel * dt;
+						//Debug.Log(vel[id].x + " - " + vel[id].y + " - " + vel[id].z);
+						vel[id] = vel[id]*dt + 0.5f*accel*dt*dt;
+						//velF[id] = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized) * dt;
+						//Debug.Log(gradientsFacePressure[j]);
+					}
+				}*/
+				
+				Vector3 accelid0 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id0];
+				Vector3 accelid1 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id1];
+				Vector3 accelid2 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id2];
+
+				//Debug.Log(id0 + " | " + vel[id0] + " | " + vel[id0]*dt);
+				vel[id0] = vel[id0]*dt + accelid0*dt*dt;
+				vel[id1] = vel[id1]*dt + accelid1*dt*dt;
+				vel[id2] = vel[id2]*dt + accelid2*dt*dt;
+
+				/*posDeltas[id0] += velF[id0]*dt;
+				posDeltas[id1] += velF[id1]*dt;
+				posDeltas[id2] += velF[id2]*dt;*/
+
+				posDeltas[id0] += vel[id0];
+				posDeltas[id1] += vel[id1];
+				posDeltas[id2] += vel[id2];
+				
+				//Debug.Log(invMass[id0] + " - " + invMass[id1] + " - " + invMass[id2]);
+				//Debug.Log(velF[id0] + " - " + velF[id1] + " - " + velF[id2]);
+				//Debug.Log(pos[id0] + " - " + pos[id1] + " - " + pos[id2]);
+				//Debug.Log(faceArea);
+				
+				/*pos[id0] += velF[id0]*dt;
+				pos[id1] += velF[id1]*dt;
+				pos[id2] += velF[id2]*dt;*/
+			}
+			//Debug.Log(vel[1].x + " - " + vel[1].y + " - " + vel[1].z);
+			//Debug.Log(posDeltas[1]);
+			
+			for (int j = 0; j < 4; j++)
+            {
+                int id = tetIds[4 * i + j];
+				pos[id] += posDeltas[id];
+				posDeltas[id] = new Vector3(0,0,0);
+			}
+		}
+
+		//Debug.Log("2. = " + vel[1].y);
+		
+		/*for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] == 0f)
+			{
+				continue;
+			}
+			//v = (x - xPrev) / dt
+			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
+		}*/
+	}
 }
 

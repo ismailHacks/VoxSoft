@@ -41,10 +41,13 @@ public class voxelTet : TetrahedronData
 		makeActuator(0,0,0,5,2,2,8);
 		Debug.Log(globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-		combineAndOptimizeVoxels(startTime);
+		combineVoxels(startTime);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
+	//
+	// Design Library
+	//
 
 	private void makeActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
@@ -54,6 +57,10 @@ public class voxelTet : TetrahedronData
 		makeTube(posX,(int)capHeight,posZ,width,width-wallThickness,totalHeight-2*capHeight);
 		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,width,capHeight);
 	}
+
+	//
+	// Core Shape Library
+	//
 
 	private void makeGyroid(int posX, int posY, int posZ, float width, float sensitivity)
 	{
@@ -107,8 +114,9 @@ public class voxelTet : TetrahedronData
 		}
 	}
 
-
-
+	//
+	// Voxel Generation
+	//
 
 	private void makeVoxel(int posX, int posY, int posZ)
 	{
@@ -136,7 +144,7 @@ public class voxelTet : TetrahedronData
 		globalVoxelCount++;
 	}
 
-	private void combineAndOptimizeVoxels(float startTime)
+	private void combineVoxels(float startTime)
 	{
 		HashSet<int> processedIndices = new HashSet<int>();
 
@@ -242,7 +250,7 @@ public class voxelTet : TetrahedronData
 
 	};
 
-	private void combineVoxels() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
+	private void combineVoxelsLegacy() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
 	{
 		for (int i = 0; i < vertsVoxelMesh.Length/3; i++)
 		{
