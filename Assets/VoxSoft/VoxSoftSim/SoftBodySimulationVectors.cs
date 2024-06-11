@@ -43,8 +43,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
 	private readonly int numSubSteps = 3;
 	//To pause the simulation
@@ -53,12 +53,12 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
 	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0.8f;
+	private readonly float edgeCompliance = 0.1f;
 	//Should be 0 or the mesh becomes very flat even for small values 
-	private readonly float volCompliance = 0.8f;
+	private readonly float volCompliance = 0.1f;
 
 	//Environment collision data 
-	private readonly float floorHeight = -0.01f;
+	private readonly float floorHeight = 0f;
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f); 
 
 	//Grabbing with mouse to move mesh around
@@ -198,21 +198,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			//Update the visual mesh
 			UpdateMesh();
 		}
-		
-		for (int i = 0; i < numTets; i++)
-		{	
-			for (int j = 0; j < 4; j++)
-			{
-                //The 3 opposite vertices ids
-                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
-			
-				Debug.DrawRay(pos[id0], gradientsFacePressure[j].normalized, Color.red);
-				Debug.DrawRay(pos[id1], gradientsFacePressure[j].normalized, Color.green);
-				Debug.DrawRay(pos[id2], gradientsFacePressure[j].normalized, Color.blue);
-			}
-		}
 	}
 
 	public Mesh MyOnDestroy()
@@ -278,13 +263,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		SolvePressure(dt, volScale);
+		SolvePressure2(dt, volScale);
 		//Debug.Log(" 4. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
 		SolveEdges(edgeCompliance, dt);
 		//Debug.Log(" 2. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
 		SolveVolumes(volCompliance, dt);
 		//Debug.Log(" 3. " +pos[0]+ " | " + pos[1] + " | "+ pos[2] + " | "+ pos[3]);
-		//SolvePressure(dt, volScale);
+		//SolvePressure2(dt, volScale);
 	}
 
 	//Environment collision handling
@@ -580,6 +565,54 @@ public class SoftBodySimulationVectors : IGrabbable
 			//v = (x - xPrev) / dt
 			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
 		}*/
+	}
+
+	private void SolvePressure2(float dt, float presScale)
+	{
+		for (int i = 0; i < numTets; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				int idThis = tetIds[4 * i + j];
+
+				// The 3 opposite vertices ids
+				int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+				int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+				int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+
+				Vector3 id1_minus_id0 = pos[id1] - pos[id0];
+				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
+				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
+
+				float faceArea = cross.magnitude * 0.5f;
+				Vector3 normal = cross.normalized;
+
+				float pressureForce = presScale * faceArea;
+
+				// Apply pressure force to each vertex of the face
+				if (invMass[id0] != 0)
+				{
+					vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
+				}
+				if (invMass[id1] != 0)
+				{
+					vel[id1] += (pressureForce * invMass[id1]) * normal * dt;
+				}
+				if (invMass[id2] != 0)
+				{
+					vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
+				}
+			}
+		}
+
+		// Update positions based on velocity
+		for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] != 0)
+			{
+				pos[i] += vel[i] * dt;
+			}
+		}
 	}
 
 	//Collision with invisible walls and floor
