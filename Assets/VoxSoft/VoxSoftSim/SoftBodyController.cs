@@ -13,7 +13,10 @@ public class SoftBodyController : MonoBehaviour
     
     public Texture2D cursorTexture;
 
-    public float volScale = 0;
+    public float pressure = 0;
+    
+    public float scale = 0.1f;
+
 
 
     //Private
@@ -23,7 +26,7 @@ public class SoftBodyController : MonoBehaviour
 
     private const int SEED = 0;
 
-    //What we use to grab the balls
+    //What we use to grab the particles
     private Grabber grabber;
 
     private bool simulate = true;
@@ -36,17 +39,15 @@ public class SoftBodyController : MonoBehaviour
     {
         Random.InitState(SEED);
         
-        TetrahedronData softBodyMesh = new voxelTet();
-        //TetrahedronData softBodyMesh = new tetGen();
-        //TetrahedronData softBodyMesh = new StanfordBunny();
-
+        TetrahedronData softBodyMesh = new voxelTet(scale);
+        //TetrahedronData softBodyMesh = new tetGen(scale);
+        //TetrahedronData softBodyMesh = new StanfordBunny(scale);
 
         for (int i = 0; i < numberOfBodies; i++)
         {
             GameObject meshI = Instantiate(softBodyMeshPrefabGO);
 
             MeshFilter meshFilter = meshI.GetComponent<MeshFilter>();
-
 
             //Random pos
             float halfPlayground = 5f;
@@ -56,12 +57,6 @@ public class SoftBodyController : MonoBehaviour
 
             Vector3 startPos = new Vector3(0f, 0f, 0f);
 
-
-            //Random scale
-            //float meshScale = Random.Range(2f, 5f);
-            float meshScale = 1f;
-
-
             //Random color
             MeshRenderer mr = meshI.GetComponent<MeshRenderer>();
 
@@ -69,7 +64,7 @@ public class SoftBodyController : MonoBehaviour
 
             mat.color = colors[Random.Range(0, colors.Length)];
             
-            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, meshScale, volScale);
+            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
 
             allSoftBodies.Add(softBodySim);
         }
@@ -130,7 +125,7 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(volScale);
+            softBody.MyFixedUpdate(pressure);
         }
 
         //Timers.Display();

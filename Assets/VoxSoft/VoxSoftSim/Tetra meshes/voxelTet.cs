@@ -14,8 +14,9 @@ using Unity.Burst;
 
 public class voxelTet : TetrahedronData
 {
-	private static int noVoxels = 500;
-	private static float voxelScale = 0.1f;
+	//Have to make sure number of voxels is correct to what is actually created!
+	private static int noVoxels = 80;
+	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
 
@@ -34,11 +35,16 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetEdgeIds => tetEdgeIdsVoxelMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 
-	public voxelTet()
+	public voxelTet(float scale)
 	{
+		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		makeActuator(0,0,0,5,2,2,8);
+		//makeActuator(0,0,0,5,2,2,8);
+		makeCuboid(0,0,0,20,2,2);
+		//makeVoxel(0,0,0);
+		//makeVoxel(0,1,0);
+
 		Debug.Log(globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 		combineVoxels(startTime);
@@ -114,6 +120,20 @@ public class voxelTet : TetrahedronData
 		}
 	}
 
+	private void makeCuboid(int posX, int posY, int posZ, int length, int height, int width)
+	{
+		for (int k = 0; k < height; k++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				for (int i = 0; i < length; i++)
+				{
+					makeVoxel(posX+i, posY+k, posZ+j);
+				}
+			}
+		}
+	}
+	
 	//
 	// Voxel Generation
 	//
@@ -249,6 +269,13 @@ public class voxelTet : TetrahedronData
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
 
 	};
+
+    public static int[] voxelRight = new int[] {1, 5, 2, 6};
+    public static int[] voxelLeft = new int[] {0, 7, 3, 4};
+    public static int[] voxelFront= new int[] {0, 7, 1, 6};
+    public static int[] voxelBack= new int[] {4, 2, 5, 3};
+    public static int[] voxelTop= new int[] {1, 5, 3, 7};
+    public static int[] voxelBottom= new int[] {0, 4, 2, 6};
 
 	private void combineVoxelsLegacy() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
 	{

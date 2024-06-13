@@ -8,7 +8,7 @@ using UnityEngine;
 public class tetGen : TetrahedronData
 {
 	private static int noTets = 1;
-	private static float tetScale = 0.2f;
+	private static float tetScale;
 	private int globalTetCount = 0;
 
 	public float[] vertsMesh = new float[12+3*(noTets-1)];
@@ -22,8 +22,9 @@ public class tetGen : TetrahedronData
 	public override int[] GetTetEdgeIds => tetEdgeIdsMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsMesh;
 
-	public tetGen()
+	public tetGen(float scale)
 	{
+		tetScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
 		seedTet();
