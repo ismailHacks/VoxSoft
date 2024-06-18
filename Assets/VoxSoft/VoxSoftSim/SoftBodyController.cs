@@ -15,7 +15,9 @@ public class SoftBodyController : MonoBehaviour
 
     public float pressure = 0;
     
-    public float scale = 0.1f;
+    public float scale;
+
+    private int[] vertexMap;
 
 
 
@@ -41,7 +43,7 @@ public class SoftBodyController : MonoBehaviour
         
         TetrahedronData softBodyMesh = new voxelTet(scale);
         //TetrahedronData softBodyMesh = new tetGen(scale);
-        //TetrahedronData softBodyMesh = new StanfordBunny(scale);
+        //TetrahedronData softBodyMesh = new StanfordBunny();
 
         for (int i = 0; i < numberOfBodies; i++)
         {

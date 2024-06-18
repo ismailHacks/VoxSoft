@@ -9,9 +9,11 @@ public class SoftBodySimulationVectors : IGrabbable
 {
 	//Tetrahedralizer data structures
 	private readonly TetrahedronData tetraData;
+	public voxelTet vox;
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
+	public static int[] voxRight = new int[] {0, 1};
 
 
 	//Same as in ball physics
@@ -271,6 +273,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		//- Compliance (inverse stiffness): alpha
 
 		//SolveForces(dt, pressure);
+
+		SolvePressureForce(dt, pressure, voxRight, voxelTet.voxelTop);
+		//lockFaces(voxRight, voxelTet.voxelBottom);
 		forceMove(dt);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
@@ -461,26 +466,43 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	private void SolvePressureForce(float dt, float pressure, int[] tetIDs, int face)
+	//Need to change tetID to voxelID in order to track which voxel to apply force too
+	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face)
     {
-        for (int i = 0; i < tetIDs.Length; i++)
+        for (int i = 0; i < voxIDs.Length; i++)
         {
             for (int j = 0; j < 4; j++)
             {
-                int idThis = tetIds[4 * i + j];
-                // The 3 opposite vertices ids
-                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+                // The id's of all particles on the face
+				int[] vertexMapping = tetraData.GetVertexMapping;
 
-                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
-                Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-                Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
+				int id0 = vertexMapping[8 * voxIDs[i] + face[0]];
+                int id1 = vertexMapping[8 * voxIDs[i] + face[1]];
+                int id2 = vertexMapping[8 * voxIDs[i] + face[2]];
+                int id3 = vertexMapping[8 * voxIDs[i] + face[3]];
 
-                float faceArea = cross.magnitude * 0.5f;
-                Vector3 normal = cross.normalized;
+				//Something about this does not work for all faces due to the way in which the triangles are formed.
+                Vector3 id0_minus_id1 = pos[id0] - pos[id1];
+                Vector3 id2_minus_id1 = pos[id2] - pos[id1];
 
-                float pressureForce = pressure * faceArea;
+				Vector3 id0_minus_id3 = pos[id0] - pos[id3];
+				Vector3 id2_minus_id3 = pos[id2] - pos[id3];
+
+
+                Vector3 crossF1 = Vector3.Cross(id0_minus_id1, id2_minus_id1);
+                Vector3 crossF2 = Vector3.Cross(id0_minus_id3, id2_minus_id3);
+
+                float faceAreaF1 = crossF1.magnitude * 0.5f;
+                float faceAreaF2 = crossF2.magnitude * 0.5f;
+
+                Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
+
+				Debug.DrawRay(pos[id0], -normal, Color.blue);
+				Debug.DrawRay(pos[id1], -normal, Color.blue);
+				Debug.DrawRay(pos[id2], -normal, Color.blue);
+				Debug.DrawRay(pos[id3], -normal, Color.blue);
+
+                float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
 
                 // Apply pressure force to each vertex of the face
                 if (invMass[id0] != 0)
@@ -495,9 +517,30 @@ public class SoftBodySimulationVectors : IGrabbable
                 {
                     vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
                 }
+				if (invMass[id2] != 0)
+                {
+                    vel[id3] += (pressureForce * invMass[id2]) * normal * dt;
+                }
             }
         }
     }
+
+	private void lockFaces(int[] voxIDs, int[] face)
+	{
+        for (int i = 0; i < voxIDs.Length; i++)
+        {
+			for (int j = 0; j < 4; j++)
+            {
+				int[] vertexMapping = tetraData.GetVertexMapping;
+                // The id's of all particles on the face
+				// Need to fix for voxID's and TetID's
+                invMass[vertexMapping[8 * voxIDs[i] + face[0]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[1]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[2]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[3]]] = 0f;
+			}
+		}
+	}
 
     private void forceMove(float dt)
     {

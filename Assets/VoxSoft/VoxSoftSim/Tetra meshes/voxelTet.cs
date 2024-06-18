@@ -15,12 +15,12 @@ using Unity.Burst;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 80;
+	private static int noVoxels = 2;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
-
-
+	
+	public int[] vertexMapping = new int[8*noVoxels];
 	public float[] vertsVoxelMesh = new float[24*noVoxels];
 	public int[] tetIdsVoxelMesh = new int[20*noVoxels];
 	private int[] tetEdgeIdsVoxelMesh = new int[36*noVoxels];
@@ -34,6 +34,11 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetIds => tetIdsVoxelMesh;
 	public override int[] GetTetEdgeIds => tetEdgeIdsVoxelMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
+	public override int[] GetVertexMapping => vertexMapping;
+
+	//public override int[] GetVertexMapping => vertexMapping;
+
+
 
 	public voxelTet(float scale)
 	{
@@ -41,9 +46,9 @@ public class voxelTet : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		//makeActuator(0,0,0,5,2,2,8);
-		makeCuboid(0,0,0,20,2,2);
-		//makeVoxel(0,0,0);
-		//makeVoxel(0,1,0);
+		//makeCuboid(0,0,0,20,2,2);
+		makeVoxel(0,0,0);
+		makeVoxel(1,0,0);
 
 		Debug.Log(globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
@@ -167,6 +172,15 @@ public class voxelTet : TetrahedronData
 	private void combineVoxels(float startTime)
 	{
 		HashSet<int> processedIndices = new HashSet<int>();
+		int numVertices = vertsVoxelMesh.Length / 3;
+		vertexMapping = new int[numVertices];
+
+		for (int v = 0; v < numVertices; v++)
+		{
+			vertexMapping[v] = v;
+		}
+
+		//Debug.Log("VB = " + vertexMapping[2]);
 
 		for (int i = 0; i < vertsVoxelMesh.Length / 3; i++)
 		{
@@ -214,10 +228,12 @@ public class voxelTet : TetrahedronData
 						{
 							tetSurfaceTriIdsVoxelMesh[m] = i;
 						}
-					}	
+					}
+					vertexMapping[j] = i;
 				}
 			}
 		}
+		//Debug.Log("VA = " + vertexMapping[11]);
 		//Debug.Log("CC = " + connectionCount + " - GVC = " + globalVoxelCount);
 	}
 
@@ -270,12 +286,17 @@ public class voxelTet : TetrahedronData
 
 	};
 
-    public static int[] voxelRight = new int[] {1, 5, 2, 6};
-    public static int[] voxelLeft = new int[] {0, 7, 3, 4};
-    public static int[] voxelFront= new int[] {0, 7, 1, 6};
-    public static int[] voxelBack= new int[] {4, 2, 5, 3};
-    public static int[] voxelTop= new int[] {1, 5, 3, 7};
-    public static int[] voxelBottom= new int[] {0, 4, 2, 6};
+    public static int[] voxelRight = new int[] {1, 6, 2, 5};//Correct
+    public static int[] voxelLeft = new int[] {0, 7, 3, 4};//Correct
+    public static int[] voxelFront= new int[] {1, 7, 0, 6};//Correct
+    public static int[] voxelBack= new int[] {3, 5, 2, 4};//Correct
+    public static int[] voxelTop= new int[] {1, 5, 3, 7};//Correct
+    public static int[] voxelBottom= new int[] {0, 4, 2, 6};//Correct
+
+	public int[] vertexMap()
+	{
+		return vertexMapping;
+	}
 
 	private void combineVoxelsLegacy() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
 	{

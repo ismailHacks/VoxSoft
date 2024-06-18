@@ -10,6 +10,7 @@ public class tetGen : TetrahedronData
 	private static int noTets = 1;
 	private static float tetScale;
 	private int globalTetCount = 0;
+	public int[] vertexMapping;
 
 	public float[] vertsMesh = new float[12+3*(noTets-1)];
 	public int[] tetIdsMesh = new int[4*noTets];
@@ -21,6 +22,7 @@ public class tetGen : TetrahedronData
 	public override int[] GetTetIds => tetIdsMesh;
 	public override int[] GetTetEdgeIds => tetEdgeIdsMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsMesh;
+	public override int[] GetVertexMapping => vertexMapping;
 
 	public tetGen(float scale)
 	{

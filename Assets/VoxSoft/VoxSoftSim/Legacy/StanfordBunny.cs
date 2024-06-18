@@ -5,6 +5,7 @@ using UnityEngine;
 public class StanfordBunny : TetrahedronData
 {
 	private readonly float[] verts;
+	public int[] vertexMapping;
 
 	//Getters
 	public override float[] GetVerts => verts;
@@ -14,6 +15,8 @@ public class StanfordBunny : TetrahedronData
 	public override int[] GetTetEdgeIds => tetEdgeIds;
 
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIds;
+
+	public override int[] GetVertexMapping => vertexMapping;
 
 
 
