@@ -26,19 +26,12 @@ public class voxelTet : TetrahedronData
 	private int[] tetEdgeIdsVoxelMesh = new int[36*noVoxels];
 	private int[] tetSurfaceTriIdsVoxelMesh = new int[48*noVoxels];
 
-	//private Vector2[] ChangeID = new Vector2[noVoxels*100000];
-	List<Vector2> ChangeID = new List<Vector2>();
-
 	//Getters
 	public override float[] GetVerts => vertsVoxelMesh;
 	public override int[] GetTetIds => tetIdsVoxelMesh;
 	public override int[] GetTetEdgeIds => tetEdgeIdsVoxelMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
-
-	//public override int[] GetVertexMapping => vertexMapping;
-
-
 
 	public voxelTet(float scale)
 	{
