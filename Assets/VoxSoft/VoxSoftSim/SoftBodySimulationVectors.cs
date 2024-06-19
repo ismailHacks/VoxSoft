@@ -13,7 +13,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	public static int[] voxRight = new int[] {0, 1};
+	public static int[] voxEnd = new int[] {0, 20, 40, 60};
 
 
 	//Same as in ball physics
@@ -49,7 +49,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
 	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
-	private readonly int numSubSteps = 10;
+	private readonly int numSubSteps = 30;
 	//To pause the simulation
 	private bool simulate = true;
 
@@ -270,8 +270,8 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//SolveForces(dt, pressure);
 
-		SolvePressureForce(dt, pressure, voxRight, voxelTet.voxelTop);
-		//lockFaces(voxRight, voxelTet.voxelBottom);
+		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
+		lockFaces(voxEnd, voxelTet.voxelLeft);
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);

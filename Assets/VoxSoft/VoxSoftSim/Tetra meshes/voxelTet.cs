@@ -46,7 +46,7 @@ public class voxelTet : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		//makeActuator(0,0,0,5,2,2,8);
-		makeCuboid(0,10,0,20,2,2);
+		makeCuboid(0,30,0,20,2,2);
 		//makeVoxel(0,0,0);
 		//makeVoxel(1,0,0);
 
