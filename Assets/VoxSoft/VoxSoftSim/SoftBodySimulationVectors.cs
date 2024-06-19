@@ -176,7 +176,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	public void MyFixedUpdate(float pressure)
+	public void MyFixedUpdate(float dampingCoefficient, float pressure)
 	{
 		if (!simulate)
 		{
@@ -187,7 +187,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//ShrinkWalls(dt);
 
-		Simulate(dt, pressure);
+		Simulate(dt, dampingCoefficient, pressure);
 	}
 
 	public void MyUpdate()
@@ -225,14 +225,14 @@ public class SoftBodySimulationVectors : IGrabbable
 	//
 
 	//Main soft body simulation loop
-	void Simulate(float dt, float pressure)
+	void Simulate(float dt, float dampingCoefficient, float pressure)
 	{
 		float sdt = dt / numSubSteps;
 
 		for (int step = 0; step < numSubSteps; step++)
 		{		
 			PreSolve(sdt, gravity);
-			SolveConstraints(sdt, pressure);
+			SolveConstraints(sdt,dampingCoefficient, pressure);
 			HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
@@ -250,17 +250,13 @@ public class SoftBodySimulationVectors : IGrabbable
 				continue;
 			}
 
-			//Save old pos
 			prevPos[i] = pos[i];
-			//Update vel
 			vel[i] += dt * gravity;
-			//Update pos - now done in the solve Forces loop in one go
-			//pos[i] += dt * vel[i];
 		}
 	}
 
 	//Handle the soft body physics
-	private void SolveConstraints(float dt, float pressure)
+	private void SolveConstraints(float dt, float dampingCoefficient, float pressure)
 	{
 		//Constraints
 		//Enforce constraints by moving each vertex: x = x + deltaX
@@ -276,7 +272,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		SolvePressureForce(dt, pressure, voxRight, voxelTet.voxelTop);
 		//lockFaces(voxRight, voxelTet.voxelBottom);
-		forceMove(dt);
+		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
 		//SolveSolveExternalVoxelPressureForce(dt, volScale);
@@ -466,7 +462,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	//Need to change tetID to voxelID in order to track which voxel to apply force too
 	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face)
     {
         for (int i = 0; i < voxIDs.Length; i++)
@@ -542,14 +537,16 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-    private void forceMove(float dt)
+	//Damping coefficient currently implemented incorrectly - as it damps gravity as well. Just here for simulation stability
+	//When dynamic effects are being looked at this will need to be correct.
+    private void forceMove(float dt, float dampingCoefficient)
     {
         // Update positions based on velocity
         for (int i = 0; i < numParticles; i++)
         {
             if (invMass[i] != 0)
             {
-                pos[i] += vel[i] * dt;
+                pos[i] += vel[i]*dampingCoefficient * dt;
             }
         }
     }

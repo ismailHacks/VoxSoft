@@ -10,32 +10,20 @@ public class SoftBodyController : MonoBehaviour
 {
     //Public
     public GameObject softBodyMeshPrefabGO;
-    
     public Texture2D cursorTexture;
-
-    public float pressure = 0;
-    
+    public float dampingCoefficient;
+    public float pressure;
     public float scale;
-
-    private int[] vertexMap;
-
-
 
     //Private
     private readonly List<SoftBodySimulationVectors> allSoftBodies = new ();
-
     private int numberOfBodies = 1;
-
     private const int SEED = 0;
 
     //What we use to grab the particles
     private Grabber grabber;
-
     private bool simulate = true;
-
     private readonly Color[] colors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan };
-
-    
 
     private void Start()
     {
@@ -127,7 +115,7 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(pressure);
+            softBody.MyFixedUpdate(dampingCoefficient, pressure);
         }
 
         //Timers.Display();
