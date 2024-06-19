@@ -13,7 +13,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	public static int[] voxEnd = new int[] {0, 20, 40, 60};
+	//public static int[] beamStartVoxels = new int[] {0, 20, 40, 60};
+	public static int[] beamStartVoxels = new int[] {0};
+
 
 
 	//Same as in ball physics
@@ -49,16 +51,16 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
 	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//3 steps is minimum or the bodies will lose their shape  
-	private readonly int numSubSteps = 30;
+	private readonly int numSubSteps = 200;
 	//To pause the simulation
 	private bool simulate = true;
 
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
 	//alpha = 0 means infinitely stiff (hard)
-	private readonly float edgeCompliance = 0f;
+	//private readonly float edgeCompliance = 0.01f;
 	//Should be 0 or the mesh becomes very flat even for small values 
-	private readonly float volCompliance = 0f;
+	//private readonly float volCompliance = 0f;
 
 	//Environment collision data 
 	private readonly float floorHeight = 0f;
@@ -157,8 +159,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 
 		float pMass = totalMass/numParticles;
-		Debug.Log("Num Particles = " + numParticles);
-		Debug.Log("mass = " + totalMass);
+		Debug.Log("Num Vertices = " + numParticles);
+		Debug.Log("Mass = " + totalMass);
 
 		for (int i = 0; i < numParticles; i++)
 		{
@@ -176,7 +178,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	public void MyFixedUpdate(float dampingCoefficient, float pressure)
+	public void MyFixedUpdate(int numSubSteps, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
 	{
 		if (!simulate)
 		{
@@ -187,7 +189,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//ShrinkWalls(dt);
 
-		Simulate(dt, dampingCoefficient, pressure);
+		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
 	}
 
 	public void MyUpdate()
@@ -225,14 +227,14 @@ public class SoftBodySimulationVectors : IGrabbable
 	//
 
 	//Main soft body simulation loop
-	void Simulate(float dt, float dampingCoefficient, float pressure)
+	void Simulate(float dt, int numSubSteps, float edgeCompliance, float volCompliance, float dampingCoefficient,  float pressure)
 	{
 		float sdt = dt / numSubSteps;
 
 		for (int step = 0; step < numSubSteps; step++)
 		{		
 			PreSolve(sdt, gravity);
-			SolveConstraints(sdt,dampingCoefficient, pressure);
+			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
 			HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
@@ -256,7 +258,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Handle the soft body physics
-	private void SolveConstraints(float dt, float dampingCoefficient, float pressure)
+	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
 	{
 		//Constraints
 		//Enforce constraints by moving each vertex: x = x + deltaX
@@ -268,14 +270,12 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		//SolveForces(dt, pressure);
-
 		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
-		lockFaces(voxEnd, voxelTet.voxelLeft);
+		//SolveExternalVoxelPressureForce(dt, pressure);
+		lockFaces(beamStartVoxels, voxelTet.voxelLeft);
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
-		//SolveSolveExternalVoxelPressureForce(dt, volScale);
 	}
 
 	//Solve distance constraint
@@ -287,21 +287,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
 	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
 	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
-	private void SolveEdges(float dt, float compliance)
+	private void SolveEdges(float dt, float edgeCompliance)
 	{
-		float alpha = compliance / (dt * dt);
-
-		/*Vector3[] posDeltasEdges0 = new Vector3[numEdges];
-		Vector3[] posDeltasEdges1 = new Vector3[numEdges];
-		
-		for (int k = 0; k < numEdges; k++)
-		{
-			posDeltasEdges0[k] = new Vector3(0,0,0);
-			posDeltasEdges1[k] = new Vector3(0,0,0);
-		}*/
-
-		//For each edge
-		//Debug.Log(numEdges);
+		float alpha = edgeCompliance / (dt * dt);
 
 		for (int i = 0; i < numEdges; i++)
 		{
@@ -345,6 +333,8 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
 			float lambda = -C / (wTot + alpha);
+			//float lambda = -C / (wTot);
+
 			
 			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
 			pos[id0] += lambda * w0 * gradC;
@@ -364,9 +354,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
 	//delta_xi = -lambda * w_i * grad_Ci
 	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
-	private void SolveVolumes(float dt, float compliance)
+	private void SolveVolumes(float dt, float volumeCompliance)
 	{
-		float alpha = compliance / (dt * dt);
+		float alpha = volumeCompliance / (dt * dt);
 
 		//For each tetra
 		for (int i = 0; i < numTets; i++)

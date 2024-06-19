@@ -11,7 +11,17 @@ public class SoftBodyController : MonoBehaviour
     //Public
     public GameObject softBodyMeshPrefabGO;
     public Texture2D cursorTexture;
+    public int numSubSteps;
+
+
+	//Soft body behavior settings
+	//Compliance (alpha) is the inverse of physical stiffness (k)
+	//alpha = 0 means infinitely stiff (hard)
+    public float edgeCompliance;
+	//Should be 0 or the mesh becomes very flat even for small values 
+    public float volCompliance;
     public float dampingCoefficient;
+
     public float pressure;
     public float scale;
 
@@ -115,7 +125,7 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(dampingCoefficient, pressure);
+            softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
         }
 
         //Timers.Display();
