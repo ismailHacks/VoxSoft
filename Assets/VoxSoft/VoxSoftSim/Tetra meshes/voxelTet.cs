@@ -272,7 +272,6 @@ public class voxelTet : TetrahedronData
 		1,5, 2,5, 3,5, //Outer Tetrahedron 2
 		0,6, 1,6, 2,6,  //Outer Tetrahedron 3
 		0,7, 1,7, 3,7  //Outer Tetrahedron 4
-
 	};
 
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
@@ -283,15 +282,14 @@ public class voxelTet : TetrahedronData
 		2,3,5, 2,5,1, 3,1,5, 1,3,2, //Outer Tetrahedron 2
 		0,6,1, 0,2,6, 1,6,2, 0,1,2, //Outer Tetrahedron 3
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
-
 	};
 
-    public static int[] voxelRight = new int[] {1, 6, 2, 5};//Correct
-    public static int[] voxelLeft = new int[] {0, 7, 3, 4};//Correct
-    public static int[] voxelFront= new int[] {1, 7, 0, 6};//Correct
-    public static int[] voxelBack= new int[] {3, 5, 2, 4};//Correct
-    public static int[] voxelTop= new int[] {1, 5, 3, 7};//Correct
-    public static int[] voxelBottom= new int[] {0, 4, 2, 6};//Correct
+    public static int[] voxelRight = new int[] {1, 6, 2, 5};
+    public static int[] voxelLeft = new int[] {0, 7, 3, 4};
+    public static int[] voxelFront= new int[] {1, 7, 0, 6};
+    public static int[] voxelBack= new int[] {3, 5, 2, 4};
+    public static int[] voxelTop= new int[] {1, 5, 3, 7};
+    public static int[] voxelBottom= new int[] {0, 4, 2, 6};
 
 	public int[] vertexMap()
 	{

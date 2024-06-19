@@ -4,7 +4,6 @@ using UnityEngine;
 
 
 //Same as SoftBodySimulation but is using Vector3 instead of arrays where an index in the array is x, y, or z 
-//This makes the code simpler to read buy maye a little slower according to the guy in the video, but I don't notice much difference...
 public class SoftBodySimulationVectors : IGrabbable
 {
 	//Tetrahedralizer data structures
@@ -50,18 +49,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Simulation settings
 	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
 	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
-	//3 steps is minimum or the bodies will lose their shape  
-	private readonly int numSubSteps = 200;
 	//To pause the simulation
 	private bool simulate = true;
-
-	//Soft body behavior settings
-	//Compliance (alpha) is the inverse of physical stiffness (k)
-	//alpha = 0 means infinitely stiff (hard)
-	//private readonly float edgeCompliance = 0.01f;
-	//Should be 0 or the mesh becomes very flat even for small values 
-	//private readonly float volCompliance = 0f;
-
 	//Environment collision data 
 	private readonly float floorHeight = 0f;
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f); 

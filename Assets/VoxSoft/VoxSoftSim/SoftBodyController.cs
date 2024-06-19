@@ -5,14 +5,12 @@ using UserInteraction;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)
-//Based on https://matthias-research.github.io/pages/tenMinutePhysics/index.html
 public class SoftBodyController : MonoBehaviour
 {
     //Public
     public GameObject softBodyMeshPrefabGO;
     public Texture2D cursorTexture;
     public int numSubSteps;
-
 
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
@@ -33,7 +31,7 @@ public class SoftBodyController : MonoBehaviour
     //What we use to grab the particles
     private Grabber grabber;
     private bool simulate = true;
-    private readonly Color[] colors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan };
+    private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
 
     private void Start()
     {
@@ -62,7 +60,7 @@ public class SoftBodyController : MonoBehaviour
 
             Material mat = mr.material;
 
-            mat.color = colors[Random.Range(0, colors.Length)];
+            mat.color = colors[i];
             
             SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
 
@@ -76,8 +74,6 @@ public class SoftBodyController : MonoBehaviour
 
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.ForceSoftware);
     }
-
-
 
     private void Update()
     {
@@ -95,8 +91,6 @@ public class SoftBodyController : MonoBehaviour
         }
     }
 
-
-
     private void LateUpdate()
     {
         if (Input.GetMouseButtonDown(0))
@@ -111,8 +105,6 @@ public class SoftBodyController : MonoBehaviour
             grabber.EndGrab();
         }
     }
-
-
 
     private void FixedUpdate()
     {
@@ -130,8 +122,6 @@ public class SoftBodyController : MonoBehaviour
 
         //Timers.Display();
     }
-
-
 
     private void OnDestroy()
     {
