@@ -12,8 +12,15 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	//public static int[] beamStartVoxels = new int[] {0, 20, 40, 60};
-	public static int[] beamStartVoxels = new int[] {0};
+	//public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
+	public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
+	//public static int[] beamStartVoxels = new int[] {0}; //For 9 Voxels
+	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
+	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
+	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
+
+
+
 
 
 
@@ -224,9 +231,30 @@ public class SoftBodySimulationVectors : IGrabbable
 		{		
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-			HandleEnvironmentCollision();
+			//HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
+		Debug.Log("disps = " + pos[beamLowerDisplacementPoss[0]].y
+		+ " - " + pos[beamLowerDisplacementPoss[1]].y
+		+ " - " + pos[beamLowerDisplacementPoss[2]].y
+		+ " - " + pos[beamLowerDisplacementPoss[3]].y
+		+ " - " + pos[beamLowerDisplacementPoss[4]].y
+		/*+ " - " + pos[beamLowerDisplacementPoss[5]].y
+		+ " - " + pos[beamLowerDisplacementPoss[6]].y
+		+ " - " + pos[beamLowerDisplacementPoss[7]].y
+		+ " - " + pos[beamLowerDisplacementPoss[8]].y*/);
+
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.blue);
+		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);*/
+
+
 	}
 
 	//Move the particles and handle environment collision
@@ -240,8 +268,8 @@ public class SoftBodySimulationVectors : IGrabbable
 			{
 				continue;
 			}
-
 			prevPos[i] = pos[i];
+			//Debug.Log(pos[68]);
 			vel[i] += dt * gravity;
 		}
 	}
@@ -471,10 +499,10 @@ public class SoftBodySimulationVectors : IGrabbable
 
                 Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
 
-				Debug.DrawRay(pos[id0], -normal, Color.blue);
+				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
 				Debug.DrawRay(pos[id1], -normal, Color.blue);
 				Debug.DrawRay(pos[id2], -normal, Color.blue);
-				Debug.DrawRay(pos[id3], -normal, Color.blue);
+				Debug.DrawRay(pos[id3], -normal, Color.blue);*/
 
                 float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
 
@@ -528,6 +556,7 @@ public class SoftBodySimulationVectors : IGrabbable
                 pos[i] += vel[i]*dampingCoefficient * dt;
             }
         }
+		//Debug.DrawRay(pos[10], gravity, Color.blue);
     }
 
     //Environment collision handling

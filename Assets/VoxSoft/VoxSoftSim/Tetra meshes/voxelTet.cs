@@ -15,7 +15,7 @@ using Unity.Burst;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 9;
+	private static int noVoxels = 40;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -39,7 +39,7 @@ public class voxelTet : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		//makeActuator(0,0,0,5,2,2,8);
-		makeCuboid(0,15,0,9,1,1);
+		makeCuboid(0,30,0,10,2,2);
 		//makeVoxel(0,0,0);
 		//makeVoxel(1,0,0);
 
