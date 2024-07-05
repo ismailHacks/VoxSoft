@@ -47,12 +47,6 @@ public class SoftBodyController : MonoBehaviour
 
             MeshFilter meshFilter = meshI.GetComponent<MeshFilter>();
 
-            //Random pos
-            float halfPlayground = 5f;
-
-            float randomX = Random.Range(-halfPlayground, halfPlayground);
-            float randomZ = Random.Range(-halfPlayground, halfPlayground);
-
             Vector3 startPos = new Vector3(0f, 0f, 0f);
 
             //Random color
@@ -60,7 +54,7 @@ public class SoftBodyController : MonoBehaviour
 
             Material mat = mr.material;
 
-            mat.color = colors[i];
+            mat.color = colors[0];
             
             SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
 
@@ -119,8 +113,8 @@ public class SoftBodyController : MonoBehaviour
         {
             softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
         }
-
         //Timers.Display();
+        Debug.Log(allSoftBodies[0].converged);
     }
 
     private void OnDestroy()

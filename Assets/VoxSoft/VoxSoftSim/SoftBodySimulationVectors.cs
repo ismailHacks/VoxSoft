@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 
@@ -12,23 +13,28 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	//public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
-	public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
+	private float sensitivity = 0.00001f;
+	private float startingVerticalDisplacement = 0.15f;
+	public bool converged = false;
+	//public static int[] beamStartVoxels = new int[] {0}; //For 1 Voxel
+	public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
+	//public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
 	//public static int[] beamStartVoxels = new int[] {0}; //For 9 Voxels
+	
+	//public static int[] beamLowerDisplacementPoss = new int[] {0};//For 1 Voxel
+	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
+	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
 	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
-	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
-	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
 
+	public static float[] beamLowerDisplacementReal = new float[] {-0.003423628f, -0.009076258f, -0.016097124f, -0.024037029f, -0.032621595f, -0.04163108f, -0.050668488f, -0.059602701f, -0.069014037f}; //For 72 Voxels
 
-
-
-
-
-	//Same as in ball physics
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
 
+	private readonly Vector3[] stabPos;
+	private readonly Vector3[] stabPrevPos;
+	private readonly Vector3[] stabVel;
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -92,6 +98,11 @@ public class SoftBodySimulationVectors : IGrabbable
 		pos = new Vector3[numParticles];
 		prevPos = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
+
+		stabPos = new Vector3[numParticles];
+		stabPrevPos = new Vector3[numParticles];
+		stabVel = new Vector3[numParticles];
+
 		invMass = new float[numParticles];
 
 		restVolumes = new float[numTets];
@@ -184,8 +195,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		float dt = Time.fixedDeltaTime;
 
 		//ShrinkWalls(dt);
-
+		convergenceSetup();
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
+		converged = convergenceDetect(sensitivity, dt);
+		//Debug.Log(converged1);
 	}
 
 	public void MyUpdate()
@@ -228,33 +241,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		float sdt = dt / numSubSteps;
 
 		for (int step = 0; step < numSubSteps; step++)
-		{		
+		{	
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
 			//HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
-		Debug.Log("disps = " + pos[beamLowerDisplacementPoss[0]].y
-		+ " - " + pos[beamLowerDisplacementPoss[1]].y
-		+ " - " + pos[beamLowerDisplacementPoss[2]].y
-		+ " - " + pos[beamLowerDisplacementPoss[3]].y
-		+ " - " + pos[beamLowerDisplacementPoss[4]].y
-		/*+ " - " + pos[beamLowerDisplacementPoss[5]].y
-		+ " - " + pos[beamLowerDisplacementPoss[6]].y
-		+ " - " + pos[beamLowerDisplacementPoss[7]].y
-		+ " - " + pos[beamLowerDisplacementPoss[8]].y*/);
-
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.blue);
-		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);*/
-
-
+		debugLog();
 	}
 
 	//Move the particles and handle environment collision
@@ -269,7 +262,6 @@ public class SoftBodySimulationVectors : IGrabbable
 				continue;
 			}
 			prevPos[i] = pos[i];
-			//Debug.Log(pos[68]);
 			vel[i] += dt * gravity;
 		}
 	}
@@ -429,6 +421,113 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	//Used to lock specific faces in space.
+	private void lockFaces(int[] voxIDs, int[] face)
+	{
+        for (int i = 0; i < voxIDs.Length; i++)
+        {
+			for (int j = 0; j < 4; j++)
+            {
+				int[] vertexMapping = tetraData.GetVertexMapping;
+                // The id's of all particles on the face
+				// Need to fix for voxID's and TetID's
+                invMass[vertexMapping[8 * voxIDs[i] + face[0]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[1]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[2]]] = 0f;
+                invMass[vertexMapping[8 * voxIDs[i] + face[3]]] = 0f;
+			}
+		}
+	}
+
+	//Damping coefficient currently implemented incorrectly - as it damps gravity as well. Just here for simulation stability
+	//When dynamic effects are being looked at this will need to be correct.
+    private void forceMove(float dt, float dampingCoefficient)
+    {
+        // Update positions based on velocity
+        for (int i = 0; i < numParticles; i++)
+        {
+            if (invMass[i] != 0)
+            {
+                pos[i] += vel[i]*dampingCoefficient * dt;
+            }
+        }
+		//Debug.DrawRay(pos[10], gravity, Color.blue);
+    }
+
+	//Update the velocity after the constrain has been handled
+	private void PostSolve(float dt)
+	{
+		float oneOverdt = 1f / dt;
+	
+		//For each particle
+		for (int i = 0; i < numParticles; i++)
+		{
+			if (invMass[i] == 0f)
+			{
+				continue;
+			}
+
+			//v = (x - xPrev) / dt
+			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
+		}
+	}
+	
+	//Collision with invisible walls and floor
+	private void EnvironmentCollision(int i)
+	{
+		//Floor collision
+		float x = pos[i].x;
+		float y = pos[i].y;
+		float z = pos[i].z;
+
+		//X
+		if (x < -halfPlayGroundSize.x)
+		{
+			pos[i] = prevPos[i];
+			pos[i].x = -halfPlayGroundSize.x;
+		}
+		else if (x > halfPlayGroundSize.x)
+		{
+			pos[i] = prevPos[i];
+			pos[i].x = halfPlayGroundSize.x;
+		}
+
+		//Y
+		if (y < floorHeight)
+		{
+			//Set the pos to previous pos
+			pos[i] = prevPos[i];
+			//But the y of the previous pos should be at the ground
+			pos[i].y = floorHeight;
+		}
+		else if (y > halfPlayGroundSize.y)
+		{
+			pos[i] = prevPos[i];
+			pos[i].y = halfPlayGroundSize.y;
+		}
+
+		//Z
+		if (z < -halfPlayGroundSize.z)
+		{
+			pos[i] = prevPos[i];
+			pos[i].z = -halfPlayGroundSize.z;
+		}
+		else if (z > halfPlayGroundSize.z)
+		{
+			pos[i] = prevPos[i];
+			pos[i].z = halfPlayGroundSize.z;
+		}
+	}
+    
+	//Environment collision handling
+    private void HandleEnvironmentCollision()
+	{
+		for (int i = 0; i < numParticles; i++)
+		{
+			EnvironmentCollision(i);
+		}
+	}
+	
 	//Integrates a pressure force on all tetrahedron surfaces
 	//TODO - Pressure force flips due to inversion of the Normal direction, there needs to be a catch for this.
 	private void SolveExternalVoxelPressureForce(float dt, float pressure)
@@ -526,113 +625,7 @@ public class SoftBodySimulationVectors : IGrabbable
             }
         }
     }
-
-	private void lockFaces(int[] voxIDs, int[] face)
-	{
-        for (int i = 0; i < voxIDs.Length; i++)
-        {
-			for (int j = 0; j < 4; j++)
-            {
-				int[] vertexMapping = tetraData.GetVertexMapping;
-                // The id's of all particles on the face
-				// Need to fix for voxID's and TetID's
-                invMass[vertexMapping[8 * voxIDs[i] + face[0]]] = 0f;
-                invMass[vertexMapping[8 * voxIDs[i] + face[1]]] = 0f;
-                invMass[vertexMapping[8 * voxIDs[i] + face[2]]] = 0f;
-                invMass[vertexMapping[8 * voxIDs[i] + face[3]]] = 0f;
-			}
-		}
-	}
-
-	//Damping coefficient currently implemented incorrectly - as it damps gravity as well. Just here for simulation stability
-	//When dynamic effects are being looked at this will need to be correct.
-    private void forceMove(float dt, float dampingCoefficient)
-    {
-        // Update positions based on velocity
-        for (int i = 0; i < numParticles; i++)
-        {
-            if (invMass[i] != 0)
-            {
-                pos[i] += vel[i]*dampingCoefficient * dt;
-            }
-        }
-		//Debug.DrawRay(pos[10], gravity, Color.blue);
-    }
-
-    //Environment collision handling
-    private void HandleEnvironmentCollision()
-	{
-		for (int i = 0; i < numParticles; i++)
-		{
-			EnvironmentCollision(i);
-		}
-	}
-
-	//Update the velocity after the constrain has been handled
-	private void PostSolve(float dt)
-	{
-		float oneOverdt = 1f / dt;
 	
-		//For each particle
-		for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-
-			//v = (x - xPrev) / dt
-			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}
-	}
-	
-	//Collision with invisible walls and floor
-	private void EnvironmentCollision(int i)
-	{
-		//Floor collision
-		float x = pos[i].x;
-		float y = pos[i].y;
-		float z = pos[i].z;
-
-		//X
-		if (x < -halfPlayGroundSize.x)
-		{
-			pos[i] = prevPos[i];
-			pos[i].x = -halfPlayGroundSize.x;
-		}
-		else if (x > halfPlayGroundSize.x)
-		{
-			pos[i] = prevPos[i];
-			pos[i].x = halfPlayGroundSize.x;
-		}
-
-		//Y
-		if (y < floorHeight)
-		{
-			//Set the pos to previous pos
-			pos[i] = prevPos[i];
-			//But the y of the previous pos should be at the ground
-			pos[i].y = floorHeight;
-		}
-		else if (y > halfPlayGroundSize.y)
-		{
-			pos[i] = prevPos[i];
-			pos[i].y = halfPlayGroundSize.y;
-		}
-
-		//Z
-		if (z < -halfPlayGroundSize.z)
-		{
-			pos[i] = prevPos[i];
-			pos[i].z = -halfPlayGroundSize.z;
-		}
-		else if (z > halfPlayGroundSize.z)
-		{
-			pos[i] = prevPos[i];
-			pos[i].z = halfPlayGroundSize.z;
-		}
-	}
-
 	//
 	// Unity mesh 
 	//
@@ -694,6 +687,75 @@ public class SoftBodySimulationVectors : IGrabbable
 		float volume = Tetrahedron.Volume(a, b, c, d);
 
 		return volume;
+	}
+
+	//
+	// Convergence Criterion
+	//
+
+	private void convergenceSetup()
+	{
+		for (int i = 0; i < 9; i++)
+		{
+			stabPrevPos[i] = pos[beamLowerDisplacementPoss[i]];
+		}
+	}
+
+	private bool convergenceDetect(float sensitivity, float dt)
+	{
+		float averageVel = 0;
+		for (int i = 0; i < 9; i++)
+		{
+			stabPos[i] = pos[beamLowerDisplacementPoss[i]];
+			stabVel[i] = (stabPrevPos[i] - stabPos[i])/dt;
+			averageVel += stabVel[i].magnitude;
+			averageVel = averageVel/9;
+		}
+		//Debug.Log(averageVel);
+
+		if (averageVel <= sensitivity)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	private void debugLog()
+	{
+		//To calculate simulated displacement.
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
+
+		//To calculate difference between real and simulated beam.
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement - beamLowerDisplacementReal[0])
+		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement - beamLowerDisplacementReal[1])
+		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement - beamLowerDisplacementReal[2])
+		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement - beamLowerDisplacementReal[3])
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement - beamLowerDisplacementReal[4])
+		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement - beamLowerDisplacementReal[5])
+		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement - beamLowerDisplacementReal[6])
+		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
+		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
+
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);
 	}
 
 	//
@@ -802,115 +864,5 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		return pos[grabId];
     }
-
-	private void SolvePressureLegacy(float dt, float presScale)
-	{
-		//1. Find particles in a single triangle face
-		//2. Find the normal to that triangle
-		//3. Find the force acting on the face and the mass of each particle
-		//4. Calculate acceleration and add to that face
-		/*float oneOverdt = 1f / dt;
-		for (int i = 0; i < numParticles; i++)
-		{
-			prevPos[i] = pos[i];
-		}*/
-		
-		//Debug.Log("1. = " + vel[1].y*dt);
-		
-		//1 and 2
-		for (int i = 0; i < numTets; i++)
-		{
-			Vector3[] posDeltas = new Vector3[4];
-			for (int k = 0; k < 4; k++)
-			{
-				posDeltas[k] = new Vector3(0,0,0);
-			}
-
-			//Foreach vertex in a plane
-			for (int j = 0; j < 4; j++)
-			{
-				int idThis = tetIds[4 * i + j];
-
-                //The 3 opposite vertices ids
-                int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-                int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-                int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
-
-                Vector3 id1_minus_id0 = pos[id1] - pos[id0];
-				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
-
-				float faceArea = cross.magnitude*0.5f;
-
-				gradientsFacePressure[j] = cross;
-
-				/*int[] ids = { id0, id1, id2 };
-
-				foreach (int id in ids)
-				{
-					if (invMass[id] == 0)
-					{
-						velF[id] = new Vector3(0, 0, 0);
-					}
-					else
-					{
-						Vector3 accel = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized)/invMass[id];
-						//velF[id] += accel * dt;
-						//Debug.Log(vel[id].x + " - " + vel[id].y + " - " + vel[id].z);
-						vel[id] = vel[id]*dt + 0.5f*accel*dt*dt;
-						//velF[id] = (presScale * faceArea / 3 * gradientsFacePressure[j].normalized) * dt;
-						//Debug.Log(gradientsFacePressure[j]);
-					}
-				}*/
-				
-				Vector3 accelid0 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id0];
-				Vector3 accelid1 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id1];
-				Vector3 accelid2 = (presScale * faceArea / 3 * gradientsFacePressure[j])/invMass[id2];
-
-				//Debug.Log(id0 + " | " + vel[id0] + " | " + vel[id0]*dt);
-				vel[id0] = vel[id0]*dt + accelid0*dt*dt;
-				vel[id1] = vel[id1]*dt + accelid1*dt*dt;
-				vel[id2] = vel[id2]*dt + accelid2*dt*dt;
-
-				/*posDeltas[id0] += velF[id0]*dt;
-				posDeltas[id1] += velF[id1]*dt;
-				posDeltas[id2] += velF[id2]*dt;*/
-
-				posDeltas[id0] += vel[id0];
-				posDeltas[id1] += vel[id1];
-				posDeltas[id2] += vel[id2];
-				
-				//Debug.Log(invMass[id0] + " - " + invMass[id1] + " - " + invMass[id2]);
-				//Debug.Log(velF[id0] + " - " + velF[id1] + " - " + velF[id2]);
-				//Debug.Log(pos[id0] + " - " + pos[id1] + " - " + pos[id2]);
-				//Debug.Log(faceArea);
-				
-				/*pos[id0] += velF[id0]*dt;
-				pos[id1] += velF[id1]*dt;
-				pos[id2] += velF[id2]*dt;*/
-			}
-			//Debug.Log(vel[1].x + " - " + vel[1].y + " - " + vel[1].z);
-			//Debug.Log(posDeltas[1]);
-			
-			for (int j = 0; j < 4; j++)
-            {
-                int id = tetIds[4 * i + j];
-				pos[id] += posDeltas[id];
-				posDeltas[id] = new Vector3(0,0,0);
-			}
-		}
-
-		//Debug.Log("2. = " + vel[1].y);
-		
-		/*for (int i = 0; i < numParticles; i++)
-		{
-			if (invMass[i] == 0f)
-			{
-				continue;
-			}
-			//v = (x - xPrev) / dt
-			velF[i] = (pos[i] - prevPos[i]) * oneOverdt;
-		}*/
-	}
 }
 
