@@ -198,6 +198,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		convergenceSetup();
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
 		converged = convergenceDetect(sensitivity, dt);
+		fitnessCalculate();
 		//Debug.Log(converged1);
 	}
 
@@ -723,6 +724,19 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	public float fitnessCalculate()
+	{
+		float fitness = 0f;
+
+		for (int i = 0; i < 9; i++)
+		{
+			fitness += pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
+		}
+		fitness = Mathf.Sqrt(fitness*fitness);
+		Debug.Log(fitness);
+		return fitness;
+	}
+	
 	private void debugLog()
 	{
 		//To calculate simulated displacement.

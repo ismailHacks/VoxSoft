@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UserInteraction;
@@ -35,7 +36,7 @@ public class SoftBodyController : MonoBehaviour
 
     private void Start()
     {
-        Random.InitState(SEED);
+        UnityEngine.Random.InitState(SEED);
         
         TetrahedronData softBodyMesh = new voxelTet(scale);
         //TetrahedronData softBodyMesh = new tetGen(scale);
@@ -103,7 +104,6 @@ public class SoftBodyController : MonoBehaviour
     private void FixedUpdate()
     {
         //Timers.Reset();
-    
         if (!simulate)
         {
             return;
@@ -114,7 +114,7 @@ public class SoftBodyController : MonoBehaviour
             softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
         }
         //Timers.Display();
-        Debug.Log(allSoftBodies[0].converged);
+       
     }
 
     private void OnDestroy()
@@ -122,7 +122,6 @@ public class SoftBodyController : MonoBehaviour
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
             Mesh mesh = softBody.MyOnDestroy();
-
             Destroy(mesh);
         }
     }
