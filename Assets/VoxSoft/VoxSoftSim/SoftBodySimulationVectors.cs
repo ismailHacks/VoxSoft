@@ -17,8 +17,15 @@ public class SoftBodySimulationVectors : IGrabbable
 	private float startingVerticalDisplacement = 0.15f;
 	public bool converged = false;
 
-	public static int[] beamStartVoxels = new int[] {0};
-	public static int[] beamLowerDisplacementPos = new int[] {0}; //For 72 Voxels
+	public static int[] upperForce = new int[] {0,1,2,3,4,5,10,11,12,13,14,15,20,21,22,23,24,25,30,31,32,33,34,35,40,41,42,43,44,45,50,51,52,53};
+	public static int[] rightForce = new int[] {2,3,4,5,12,13,14,15,16,17,18,19,21,22,25,26,34,35,36,37,44,45,46,47,48,49,50,51,53,54,57,58,66,67,68,69,76,77,78,80,81,82,85,86,89,90};
+	public static int[] leftForce = new int[rightForce.Length];
+	public static int[] lowerForce = new int[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33};
+	public static int[] backForce = new int[] {4,5,6,7,24,25,26,27,44,45,46,47};
+	public static int[] frontForce = new int[] {14,15,16,17,34,35,36,37,56,57,58,59,60,61,62,63};
+	public static int[] lockFaceFront = new int[] {0,2,4,6,96,98,100,102,192,194,258,275};
+
+
 
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
@@ -48,7 +55,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 9.81f, 0f);
 	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//To pause the simulation
 	private bool simulate = true;
@@ -64,9 +71,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	//For custom raycasting
 	public int[] GetMeshTriangles => tetraData.GetTetSurfaceTriIds;
 	public int GetGrabId => grabId;
-
-
-
 
 	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos)
 	{
@@ -102,6 +106,31 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//Init the mesh
 		InitMesh(meshFilter, tetraData);
+
+		for (int i = 0; i < rightForce.Length; i++)
+		{
+			leftForce[i] = rightForce[i]+96;
+		}
+
+		for (int i = 0; i < lowerForce.Length; i++)
+		{
+			lowerForce[i] = lowerForce[i]+258;
+		}
+
+		for (int i = 0; i < upperForce.Length; i++)
+		{
+			upperForce[i] = upperForce[i]+192;
+		}
+
+		for (int i = 0; i < backForce.Length; i++)
+		{
+			backForce[i] = backForce[i]+192;
+		}
+
+		for (int i = 0; i < frontForce.Length; i++)
+		{
+			frontForce[i] = frontForce[i]+192;
+		}
 	}
 
 	//Fill the data structures needed or soft body physics
@@ -226,7 +255,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		{	
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-			//HandleEnvironmentCollision();
+			HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
 		debugLog();
@@ -261,7 +290,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
+		SolvePressureForce(dt, pressure, lowerForce, voxelTet.voxelTop);
+		SolvePressureForce(dt, pressure, upperForce, voxelTet.voxelBottom);
+		SolvePressureForce(dt, pressure, rightForce, voxelTet.voxelFront);
+		SolvePressureForce(dt, pressure, leftForce, voxelTet.voxelBack);
+		lockFaces(lockFaceFront, voxelTet.voxelLeft);
+
+
+
 		//SolveExternalVoxelPressureForce(dt, pressure);
 		//lockFaces(beamStartVoxels, voxelTet.voxelLeft);
 		forceMove(dt, dampingCoefficient);
@@ -560,9 +596,9 @@ public class SoftBodySimulationVectors : IGrabbable
 				int[] vertexMapping = tetraData.GetVertexMapping;
 
 				int id0 = vertexMapping[8 * voxIDs[i] + face[0]];
-                int id1 = vertexMapping[8 * voxIDs[i] + face[1]];
+                int id1 = vertexMapping[8 * voxIDs[i] + face[1]];//This is free
                 int id2 = vertexMapping[8 * voxIDs[i] + face[2]];
-                int id3 = vertexMapping[8 * voxIDs[i] + face[3]];
+                int id3 = vertexMapping[8 * voxIDs[i] + face[3]];//This is free
 
 				//Something about this does not work for all faces due to the way in which the triangles are formed.
                 Vector3 id0_minus_id1 = pos[id0] - pos[id1];
@@ -578,32 +614,49 @@ public class SoftBodySimulationVectors : IGrabbable
                 float faceAreaF1 = crossF1.magnitude * 0.5f;
                 float faceAreaF2 = crossF2.magnitude * 0.5f;
 
-                Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
+                //Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
+                Vector3 normalF1 = crossF1.normalized;
+                Vector3 normalF2 = crossF1.normalized;
+
+
 
 				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
 				Debug.DrawRay(pos[id1], -normal, Color.blue);
 				Debug.DrawRay(pos[id2], -normal, Color.blue);
 				Debug.DrawRay(pos[id3], -normal, Color.blue);*/
 
-                float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
+                float pressureForceF1 = (pressure * faceAreaF1)/3f;
+                float pressureForceF2 = (pressure * faceAreaF2)/3f;
+
 
                 // Apply pressure force to each vertex of the face
                 if (invMass[id0] != 0)
                 {
-                    vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
+                    vel[id0] += (pressureForceF1 * invMass[id0]) * normalF1 * dt;
                 }
                 if (invMass[id1] != 0)
                 {
-                    vel[id1] += (pressureForce * invMass[id1]) * normal * dt;
+                    vel[id1] += (pressureForceF1 * invMass[id1]) * normalF1 * dt;
                 }
                 if (invMass[id2] != 0)
                 {
-                    vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
+                    vel[id2] += (pressureForceF1 * invMass[id2]) * normalF1 * dt;
                 }
-				if (invMass[id2] != 0)
+
+				// Apply pressure force to each vertex of the face
+                if (invMass[id0] != 0)
                 {
-                    vel[id3] += (pressureForce * invMass[id2]) * normal * dt;
+                    vel[id0] += (pressureForceF2 * invMass[id0]) * normalF2 * dt;
                 }
+                if (invMass[id2] != 0)
+                {
+                    vel[id2] += (pressureForceF2 * invMass[id1]) * normalF2 * dt;
+                }
+                if (invMass[id3] != 0)
+                {
+                    vel[id3] += (pressureForceF2 * invMass[id2]) * normalF2 * dt;
+                }
+
             }
         }
     }
@@ -675,33 +728,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		int[] vertexMapping = tetraData.GetVertexMapping;
 
-		Debug.DrawRay(pos[vertexMapping[8 * 210]], gravity, Color.blue);
-		//Debug.DrawRay(pos[vertexMapping[8 * 197]], gravity, Color.red);
-		//Debug.DrawRay(pos[vertexMapping[8 * 198]], gravity, Color.green);
-		//Debug.DrawRay(pos[vertexMapping[8 * 199]], gravity, Color.yellow);
-
-
-
-		//To calculate simulated displacement.
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPos[0]].y- startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[1]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[2]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[3]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[4]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[5]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[6]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[7]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPos[8]].y - startingVerticalDisplacement));*/
-
-		/*Debug.DrawRay(pos[beamLowerDisplacementPos[0]], gravity, Color.yellow);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[1]], gravity, Color.green);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[2]], gravity, Color.red);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[3]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[4]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[5]], gravity, Color.gray);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[6]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPos[8]], gravity, Color.red);*/
+		Debug.DrawRay(pos[vertexMapping[8 * 275]], gravity, Color.blue);
+		Debug.DrawRay(pos[vertexMapping[8 * 259]], gravity, Color.red);
+		Debug.DrawRay(pos[vertexMapping[8 * 260]], gravity, Color.green);
+		Debug.DrawRay(pos[vertexMapping[8 * 261]], gravity, Color.yellow);
 	}
 
 	//
