@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UserInteraction;
+using UnityEngine.UI;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)
@@ -32,7 +33,7 @@ public class SoftBodyController : MonoBehaviour
     //What we use to grab the particles
     private Grabber grabber;
     private bool simulate = true;
-    private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
+    private readonly Color[] colors = new Color[] {Color.green, Color.blue, Color.red, Color.yellow, Color.cyan};
 
     private void Start()
     {

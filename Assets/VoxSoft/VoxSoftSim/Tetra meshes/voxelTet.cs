@@ -15,7 +15,7 @@ using Unity.Burst;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 72;
+	private static int noVoxels = 292;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -38,10 +38,37 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		//makeActuator(0,0,0,5,2,2,8);
-		makeCuboid(0,30,0,18,2,2);
-		//makeVoxel(0,30,0);
-		//makeVoxel(1,0,0);
+		//Right Side
+		makeCuboid(0,30,0,2,4,1);
+		makeCuboid(2,30,0,4,6,1);
+		makeCuboid(6,30,0,2,4,1);
+		makeCuboid(8,30,0,4,6,1);
+		makeCuboid(12,30,0,2,4,1);
+		makeCuboid(14,30,0,4,6,1);
+		//Left Side
+		makeCuboid(0,30,3,2,4,1);
+		makeCuboid(2,30,3,4,6,1);
+		makeCuboid(6,30,3,2,4,1);
+		makeCuboid(8,30,3,4,6,1);
+		makeCuboid(12,30,3,2,4,1);
+		makeCuboid(14,30,3,4,6,1);
+		//Upper First
+		makeCuboid(0,33,1,2,1,2);
+		makeCuboid(2,33,1,1,3,2);
+		makeCuboid(3,35,1,2,1,2);
+		makeCuboid(5,33,1,1,3,2);
+		//Upper Second
+		makeCuboid(6,33,1,2,1,2);
+		makeCuboid(8,33,1,1,3,2);
+		makeCuboid(9,35,1,2,1,2);
+		makeCuboid(11,33,1,1,3,2);
+		//Upper Third
+		makeCuboid(12,33,1,2,1,2);
+		makeCuboid(14,33,1,1,3,2);
+		makeCuboid(15,35,1,2,1,2);
+		makeCuboid(17,30,1,1,6,2);
+		//Lower
+		makeCuboid(0,30,1,17,1,2);
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");

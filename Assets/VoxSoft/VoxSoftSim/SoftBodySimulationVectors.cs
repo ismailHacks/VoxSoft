@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 //Same as SoftBodySimulation but is using Vector3 instead of arrays where an index in the array is x, y, or z 
@@ -13,28 +14,15 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	private float sensitivity = 0.00001f;
 	private float startingVerticalDisplacement = 0.15f;
 	public bool converged = false;
-	//public static int[] beamStartVoxels = new int[] {0}; //For 1 Voxel
-	public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
-	//public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
-	//public static int[] beamStartVoxels = new int[] {0}; //For 9 Voxels
-	
-	//public static int[] beamLowerDisplacementPoss = new int[] {0};//For 1 Voxel
-	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
-	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
-	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
-	public static float[] beamLowerDisplacementReal = new float[] {-0.003423628f, -0.009076258f, -0.016097124f, -0.024037029f, -0.032621595f, -0.04163108f, -0.050668488f, -0.059602701f, -0.069014037f}; //For 72 Voxels
+	public static int[] beamStartVoxels = new int[] {0};
+	public static int[] beamLowerDisplacementPos = new int[] {0}; //For 72 Voxels
 
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
-
-	private readonly Vector3[] stabPos;
-	private readonly Vector3[] stabPrevPos;
-	private readonly Vector3[] stabVel;
 
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
@@ -79,6 +67,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 
 
+
 	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos)
 	{
 		//Tetra data structures
@@ -98,10 +87,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		pos = new Vector3[numParticles];
 		prevPos = new Vector3[numParticles];
 		vel = new Vector3[numParticles];
-
-		stabPos = new Vector3[numParticles];
-		stabPrevPos = new Vector3[numParticles];
-		stabVel = new Vector3[numParticles];
 
 		invMass = new float[numParticles];
 
@@ -195,11 +180,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		float dt = Time.fixedDeltaTime;
 
 		//ShrinkWalls(dt);
-		convergenceSetup();
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-		converged = convergenceDetect(sensitivity, dt);
-		fitnessCalculate();
-		//Debug.Log(converged1);
 	}
 
 	public void MyUpdate()
@@ -282,7 +263,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
 		//SolveExternalVoxelPressureForce(dt, pressure);
-		lockFaces(beamStartVoxels, voxelTet.voxelLeft);
+		//lockFaces(beamStartVoxels, voxelTet.voxelLeft);
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
@@ -689,87 +670,38 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		return volume;
 	}
-
-	//
-	// Convergence Criterion
-	//
-
-	private void convergenceSetup()
-	{
-		for (int i = 0; i < 9; i++)
-		{
-			stabPrevPos[i] = pos[beamLowerDisplacementPoss[i]];
-		}
-	}
-
-	private bool convergenceDetect(float sensitivity, float dt)
-	{
-		float averageVel = 0;
-		for (int i = 0; i < 9; i++)
-		{
-			stabPos[i] = pos[beamLowerDisplacementPoss[i]];
-			stabVel[i] = (stabPrevPos[i] - stabPos[i])/dt;
-			averageVel += stabVel[i].magnitude;
-			averageVel = averageVel/9;
-		}
-		//Debug.Log(averageVel);
-
-		if (averageVel <= sensitivity)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	public float fitnessCalculate()
-	{
-		float fitness = 0f;
-
-		for (int i = 0; i < 9; i++)
-		{
-			fitness += pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
-		}
-		fitness = Mathf.Sqrt(fitness*fitness);
-		Debug.Log(fitness);
-		return fitness;
-	}
 	
 	private void debugLog()
 	{
+		int[] vertexMapping = tetraData.GetVertexMapping;
+
+		Debug.DrawRay(pos[vertexMapping[8 * 210]], gravity, Color.blue);
+		//Debug.DrawRay(pos[vertexMapping[8 * 197]], gravity, Color.red);
+		//Debug.DrawRay(pos[vertexMapping[8 * 198]], gravity, Color.green);
+		//Debug.DrawRay(pos[vertexMapping[8 * 199]], gravity, Color.yellow);
+
+
+
 		//To calculate simulated displacement.
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPos[0]].y- startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[1]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[2]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[3]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[4]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[5]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[6]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[7]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPos[8]].y - startingVerticalDisplacement));*/
 
-		//To calculate difference between real and simulated beam.
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement - beamLowerDisplacementReal[0])
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement - beamLowerDisplacementReal[1])
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement - beamLowerDisplacementReal[2])
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement - beamLowerDisplacementReal[3])
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement - beamLowerDisplacementReal[4])
-		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement - beamLowerDisplacementReal[5])
-		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement - beamLowerDisplacementReal[6])
-		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
-
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);
+		/*Debug.DrawRay(pos[beamLowerDisplacementPos[0]], gravity, Color.yellow);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[1]], gravity, Color.green);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[2]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[3]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[4]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[5]], gravity, Color.gray);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[6]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[7]], gravity, Color.cyan);
+		Debug.DrawRay(pos[beamLowerDisplacementPos[8]], gravity, Color.red);*/
 	}
 
 	//
