@@ -19,6 +19,7 @@ public class voxelTet : TetrahedronData
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
+	private bool evenVoxel = true;
 	
 	public int[] vertexMapping = new int[8*noVoxels];
 	public float[] vertsVoxelMesh = new float[24*noVoxels];
@@ -34,53 +35,23 @@ public class voxelTet : TetrahedronData
 	public override int[] GetVertexMapping => vertexMapping;
 
 	public voxelTet(float scale)
-	{
-		voxelScale = scale;
-		float startTime = Time.realtimeSinceStartup;
+    {
+        voxelScale = scale;
+        float startTime = Time.realtimeSinceStartup;
 
-		//Right Side
-		makeCuboid(0,30,0,2,4,1);
-		makeCuboid(2,30,0,4,6,1);
-		makeCuboid(6,30,0,2,4,1);
-		makeCuboid(8,30,0,4,6,1);
-		makeCuboid(12,30,0,2,4,1);
-		makeCuboid(14,30,0,4,6,1);
-		//Left Side
-		makeCuboid(0,30,3,2,4,1);
-		makeCuboid(2,30,3,4,6,1);
-		makeCuboid(6,30,3,2,4,1);
-		makeCuboid(8,30,3,4,6,1);
-		makeCuboid(12,30,3,2,4,1);
-		makeCuboid(14,30,3,4,6,1);
-		//Upper First
-		makeCuboid(0,33,1,2,1,2);
-		makeCuboid(2,33,1,1,3,2);
-		makeCuboid(3,35,1,2,1,2);
-		makeCuboid(5,33,1,1,3,2);
-		//Upper Second
-		makeCuboid(6,33,1,2,1,2);
-		makeCuboid(8,33,1,1,3,2);
-		makeCuboid(9,35,1,2,1,2);
-		makeCuboid(11,33,1,1,3,2);
-		//Upper Third
-		makeCuboid(12,33,1,2,1,2);
-		makeCuboid(14,33,1,1,3,2);
-		makeCuboid(15,35,1,2,1,2);
-		makeCuboid(17,30,1,1,6,2);
-		//Lower
-		makeCuboid(0,30,1,17,1,2);
+        makeActuatorPneuflex();
 
-		Debug.Log("Number of Voxels = " + globalVoxelCount);
-		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-		combineVoxels(startTime);
-		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-	}
+        Debug.Log("Number of Voxels = " + globalVoxelCount);
+        //Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
+        combineVoxels(startTime);
+        //Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
+    }
 
-	//
-	// Design Library
-	//
+    //
+    // Design Library
+    //
 
-	private void makeActuator(int posX, int posY, int posZ, 
+    private void makeActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
 	float totalHeight)
 	{
@@ -88,6 +59,41 @@ public class voxelTet : TetrahedronData
 		makeTube(posX,(int)capHeight,posZ,width,width-wallThickness,totalHeight-2*capHeight);
 		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,width,capHeight);
 	}
+
+	private void makeActuatorPneuflex()
+    {
+        //Right Side
+        makeCuboid(0, 30, 0, 2, 4, 1);
+        makeCuboid(2, 30, 0, 4, 6, 1);
+        makeCuboid(6, 30, 0, 2, 4, 1);
+        makeCuboid(8, 30, 0, 4, 6, 1);
+        makeCuboid(12, 30, 0, 2, 4, 1);
+        makeCuboid(14, 30, 0, 4, 6, 1);
+        //Left Side
+        makeCuboid(0, 30, 3, 2, 4, 1);
+        makeCuboid(2, 30, 3, 4, 6, 1);
+        makeCuboid(6, 30, 3, 2, 4, 1);
+        makeCuboid(8, 30, 3, 4, 6, 1);
+        makeCuboid(12, 30, 3, 2, 4, 1);
+        makeCuboid(14, 30, 3, 4, 6, 1);
+        //Upper First
+        makeCuboid(0, 33, 1, 2, 1, 2);
+        makeCuboid(2, 33, 1, 1, 3, 2);
+        makeCuboid(3, 35, 1, 2, 1, 2);
+        makeCuboid(5, 33, 1, 1, 3, 2);
+        //Upper Second
+        makeCuboid(6, 33, 1, 2, 1, 2);
+        makeCuboid(8, 33, 1, 1, 3, 2);
+        makeCuboid(9, 35, 1, 2, 1, 2);
+        makeCuboid(11, 33, 1, 1, 3, 2);
+        //Upper Third
+        makeCuboid(12, 33, 1, 2, 1, 2);
+        makeCuboid(14, 33, 1, 1, 3, 2);
+        makeCuboid(15, 35, 1, 2, 1, 2);
+        makeCuboid(17, 30, 1, 1, 6, 2);
+        //Lower
+        makeCuboid(0, 30, 1, 17, 1, 2);
+    }
 
 	//
 	// Core Shape Library
@@ -165,28 +171,31 @@ public class voxelTet : TetrahedronData
 
 	private void makeVoxel(int posX, int posY, int posZ)
 	{
-		for (int i = 0; i < verts.Length/3; i++)
+		if(evenVoxel)
 		{
-			vertsVoxelMesh[3*i+(24*globalVoxelCount)] = (verts[3*i]+posX)*voxelScale;
-			vertsVoxelMesh[3*i+1+(24*globalVoxelCount)] = (verts[3*i+1]+posY)*voxelScale;
-			vertsVoxelMesh[3*i+2+(24*globalVoxelCount)] = (verts[3*i+2]+posZ)*voxelScale;
-		}
+			for (int i = 0; i < verts.Length/3; i++)
+			{
+				vertsVoxelMesh[3*i+(24*globalVoxelCount)] = (verts[3*i]+posX)*voxelScale;
+				vertsVoxelMesh[3*i+1+(24*globalVoxelCount)] = (verts[3*i+1]+posY)*voxelScale;
+				vertsVoxelMesh[3*i+2+(24*globalVoxelCount)] = (verts[3*i+2]+posZ)*voxelScale;
+			}
 
-		for (int i = 0; i < tetIds.Length; i++)
-		{
-			tetIdsVoxelMesh[i+20*globalVoxelCount] = tetIds[i]+8*globalVoxelCount;
-		}
+			for (int i = 0; i < tetIds.Length; i++)
+			{
+				tetIdsVoxelMesh[i+20*globalVoxelCount] = tetIds[i]+8*globalVoxelCount;
+			}
 
-		for (int i = 0; i < tetEdgeIds.Length; i++)
-		{
-			tetEdgeIdsVoxelMesh[i+36*globalVoxelCount] = tetEdgeIds[i]+8*globalVoxelCount;
-		}
+			for (int i = 0; i < tetEdgeIds.Length; i++)
+			{
+				tetEdgeIdsVoxelMesh[i+36*globalVoxelCount] = tetEdgeIds[i]+8*globalVoxelCount;
+			}
 
-		for (int i = 0; i < tetSurfaceTriIds.Length; i++)
-		{
-			tetSurfaceTriIdsVoxelMesh[i+48*globalVoxelCount] = tetSurfaceTriIds[i]+8*globalVoxelCount;
+			for (int i = 0; i < tetSurfaceTriIds.Length; i++)
+			{
+				tetSurfaceTriIdsVoxelMesh[i+48*globalVoxelCount] = tetSurfaceTriIds[i]+8*globalVoxelCount;
+			}
+			globalVoxelCount++;
 		}
-		globalVoxelCount++;
 	}
 
 	private void combineVoxels(float startTime)
@@ -305,10 +314,10 @@ public class voxelTet : TetrahedronData
 
     public static int[] voxelRight = new int[] {1, 6, 2, 5};
     public static int[] voxelLeft = new int[] {0, 7, 3, 4};
-    public static int[] voxelFront= new int[] {1, 7, 0, 6};
-    public static int[] voxelBack= new int[] {3, 5, 2, 4};
-    public static int[] voxelTop= new int[] {1, 5, 3, 7};
-    public static int[] voxelBottom= new int[] {0, 4, 2, 6};
+    public static int[] voxelFront = new int[] {1, 7, 0, 6};
+    public static int[] voxelBack = new int[] {3, 5, 2, 4};
+    public static int[] voxelTop = new int[] {1, 5, 3, 7};
+    public static int[] voxelBottom = new int[] {0, 4, 2, 6};
 
 	public int[] vertexMap()
 	{

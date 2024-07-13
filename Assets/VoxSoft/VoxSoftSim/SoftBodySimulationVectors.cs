@@ -294,9 +294,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, upperForce, voxelTet.voxelBottom);
 		SolvePressureForce(dt, pressure, rightForce, voxelTet.voxelFront);
 		SolvePressureForce(dt, pressure, leftForce, voxelTet.voxelBack);
+		SolvePressureForce(dt, pressure, backForce, voxelTet.voxelRight);
+		SolvePressureForce(dt, pressure, frontForce, voxelTet.voxelLeft);
+
 		lockFaces(lockFaceFront, voxelTet.voxelLeft);
-
-
 
 		//SolveExternalVoxelPressureForce(dt, pressure);
 		//lockFaces(beamStartVoxels, voxelTet.voxelLeft);
