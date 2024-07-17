@@ -751,8 +751,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 
 		fitness = Mathf.Exp(fitnessExponential*fitness);
-		Debug.Log(pos[beamLowerDisplacementPoss[0]].z);
-		//Debug.Log(fitness);
+		//Debug.Log(pos[beamLowerDisplacementPoss[0]].z);
+		Debug.Log(fitness);
 		return fitness;
 	}
 	
