@@ -101,7 +101,7 @@ public class SoftBodyControllerGA : MonoBehaviour
         {
             outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.01f, ga.Population[i].Genes[0]);
             outputGenesVolC[i] = scaleVal(0f,1f,0f,0.001f, ga.Population[i].Genes[1]);
-            outputGenesStep[i] = scaleVal(0f,1f,5f,100f, ga.Population[i].Genes[2]);
+            outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
         }
         edgeCompliance = outputGenesEdgeC[0];
         volCompliance = outputGenesVolC[0];
@@ -173,7 +173,7 @@ public class SoftBodyControllerGA : MonoBehaviour
                 {
                     outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.01f, ga.Population[i].Genes[0]);
                     outputGenesVolC[i] = scaleVal(0f,1f,0f,0.001f, ga.Population[i].Genes[1]);
-                    outputGenesStep[i] = scaleVal(0f,1f,5f,100f, ga.Population[i].Genes[2]);
+                    outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
                 }
                 
                 edgeCompliance = outputGenesEdgeC[DNAno];
