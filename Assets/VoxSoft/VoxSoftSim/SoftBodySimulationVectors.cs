@@ -26,7 +26,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
 	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
-	public static float[] beamLowerDisplacementReal = new float[] {-0.003423628f, -0.009076258f, -0.016097124f, -0.024037029f, -0.032621595f, -0.04163108f, -0.050668488f, -0.059602701f, -0.069014037f}; //For 72 Voxels
+	public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f};
 
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
