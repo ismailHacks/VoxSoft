@@ -14,9 +14,9 @@ public class SoftBodyControllerGA : MonoBehaviour
     public int numSubSteps;
 
     [Header("Genetic Algorithm")]
-    static int populationSize = 10;
+    static int populationSize = 100;
     private float mutationRate = 0.05f;
-    private int elitism = 1;
+    private int elitism = 10;
     private GeneticAlgorithm<float> ga;
     private System.Random random;
     private int DNAno = 0;
