@@ -730,9 +730,11 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		for (int i = 0; i < 9; i++)
 		{
-			fitness += pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
+			float fitnessVal;
+			fitnessVal = pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
+			fitness += Mathf.Sqrt(fitnessVal*fitnessVal);
 		}
-		fitness = Mathf.Sqrt(fitness*fitness);
+		fitness = Mathf.Exp(-10*fitness);
 		Debug.Log(fitness);
 		return fitness;
 	}

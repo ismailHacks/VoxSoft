@@ -155,7 +155,7 @@ public class SoftBodyControllerGA : MonoBehaviour
         counter++;
         if(allSoftBodies[0].converged || counter > counterLimit)
         {
-            matchFitness[DNAno] = 1/allSoftBodies[0].fitnessCalculate();
+            matchFitness[DNAno] = allSoftBodies[0].fitnessCalculate();
             counter = 0; 
             DNAno++;
             if(DNAno > populationSize-1)
