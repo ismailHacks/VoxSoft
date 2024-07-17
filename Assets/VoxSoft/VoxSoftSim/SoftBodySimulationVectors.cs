@@ -15,6 +15,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float density = 1000; //kg/m^3
 	private float sensitivity = 0.00001f;
 	private float startingVerticalDisplacement = 0.15f;
+	private float fitnessExponential = -10f;
 	public bool converged = false;
 	//public static int[] beamStartVoxels = new int[] {0}; //For 1 Voxel
 	public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
@@ -26,7 +27,11 @@ public class SoftBodySimulationVectors : IGrabbable
 	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
 	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
-	public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f};
+	//public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f}; //EcoFlex 00-20
+	//public static float[] beamLowerDisplacementReal = new float[] {-0.002396238f, -0.008284655f, -0.016026766f, -0.024868433f, -0.034824125f, -0.045137897f, -0.055279863f, -0.066024053f, -0.07699792f}; //Ecoflex 00-30
+	public static float[] beamLowerDisplacementReal = new float[] {-0.001433387f, -0.005749836f, -0.01109427f, -0.01852001f, -0.025829921f, -0.032926272f, -0.041255118f, -0.049569486f, -0.057872995f}; //Ecoflex 00-50
+
+
 
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
@@ -734,7 +739,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			fitnessVal = pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
 			fitness += Mathf.Sqrt(fitnessVal*fitnessVal);
 		}
-		fitness = Mathf.Exp(-10*fitness);
+		fitness = Mathf.Exp(fitnessExponential*fitness);
 		Debug.Log(fitness);
 		return fitness;
 	}
