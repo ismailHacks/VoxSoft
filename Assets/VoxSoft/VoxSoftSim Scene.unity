@@ -486,7 +486,7 @@ Transform:
   m_GameObject: {fileID: 580804225}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.01, z: 0}
+  m_LocalPosition: {x: 0, y: -0.0001, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -543,7 +543,7 @@ MonoBehaviour:
   numSubSteps: 18
   edgeCompliance: 0
   volCompliance: 0
-  dampingCoefficient: 0.9
+  dampingCoefficient: 0.98
   pressure: 0
   scale: 0.005
 --- !u!1660057539 &9223372036854775807
