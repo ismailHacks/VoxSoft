@@ -15,7 +15,7 @@ using Unity.Burst;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 4;
+	private static int noVoxels = 196;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -38,10 +38,12 @@ public class voxelTet : TetrahedronData
     {
         voxelScale = scale;
 		//makeCubicActuator();
-		makeVoxel(0,10,0);
+		/*makeVoxel(0,10,0);
 		makeVoxel2(0,10,0);
 		makeVoxel(1,10,0);
-		makeVoxel2(1,10,0);
+		makeVoxel2(1,10,0);*/
+		makeCubicActuator();
+		makeCubicActuator2();
         Debug.Log("Number of Voxels = " + globalVoxelCount);
         combineVoxels();
     }
@@ -67,6 +69,16 @@ public class voxelTet : TetrahedronData
 		makeCuboid(0, 0, 1, 1, 5, 3);
 		makeCuboid(1, 0, 1, 3, 1, 3);
 		makeCuboid(1, 4, 1, 3, 1, 3);
+	}
+
+	void makeCubicActuator2()
+	{
+		makeCuboid2(0, 0, 0, 5, 5, 1);
+		makeCuboid2(4, 0, 1, 1, 5, 4);
+		makeCuboid2(0, 0, 4, 4, 5, 1);
+		makeCuboid2(0, 0, 1, 1, 5, 3);
+		makeCuboid2(1, 0, 1, 3, 1, 3);
+		makeCuboid2(1, 4, 1, 3, 1, 3);
 	}
 
 	private void makeActuatorPneuflex()
@@ -169,6 +181,19 @@ public class voxelTet : TetrahedronData
 				for (int i = 0; i < length; i++)
 				{
 					makeVoxel(posX+i, posY+k, posZ+j);
+				}
+			}
+		}
+	}
+
+	private void makeCuboid2(int posX, int posY, int posZ, int length, int height, int width)
+	{
+		for (int k = 0; k < height; k++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				for (int i = 0; i < length; i++)
+				{
 					makeVoxel2(posX+i, posY+k, posZ+j);
 				}
 			}

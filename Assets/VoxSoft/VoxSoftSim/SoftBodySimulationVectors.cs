@@ -26,10 +26,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	public static int[] lockFaceFront = new int[] {0,2,4,6,96,98,100,102,192,194,258,275};*/
 
 	public static int[] forcePositiveX = new int[] {29,30,31,33,34,35,37,38,39};
-	public static int[] forcePositiveX2 = new int[] {3};
-	public static int[] forcePositiveX3 = new int[] {2};
-
-
 	public static int[] forceNegativeX = new int[] {68,69,70,71,72,73,74,75,76};
 
 	public static int[] forcePositiveY = new int[] {89,90,91,92,93,94,95,96,97};
@@ -289,7 +285,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Handle the soft body physics
 	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
 	{
-		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveX,  Color.green);
+		/*SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveX,  Color.green);
 		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelPositiveX2,  Color.red);
 		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeX,  Color.green);
 		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeX2,  Color.red);
@@ -302,27 +298,26 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveZ,  Color.green);
 		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelPositiveZ2,  Color.red);
 		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeZ,  Color.green);
-		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeZ2,  Color.red);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeZ2,  Color.red);*/
 
-		/*SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, forceNegativeY, voxelTet.voxelNegativeY);
+		SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, forceNegativeZ, voxelTet.voxelNegativeZ);
 		SolvePressureForce(dt, pressure, forcePositiveZ, voxelTet.voxelPositiveZ);
 		SolvePressureForce(dt, pressure, forceNegativeX, voxelTet.voxelNegativeX);
-		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX);*/
+		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX);
+
+		/*SolvePressureForce2(dt, pressure, forceNegativeY, voxelTet.voxelNegativeY2);
+		SolvePressureForce2(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY2);
+		SolvePressureForce2(dt, pressure, forceNegativeZ, voxelTet.voxelNegativeZ2);
+		SolvePressureForce2(dt, pressure, forcePositiveZ, voxelTet.voxelPositiveZ2);
+		SolvePressureForce2(dt, pressure, forceNegativeX, voxelTet.voxelNegativeX2);
+		SolvePressureForce2(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX2);*/
 		
 
-		//lockFaces(lockFaceFront, voxelTet.voxelPositiveY);
+		lockFaces(lockFaceFront, voxelTet.voxelPositiveY);
+		lockFaces2(lockFaceFront, voxelTet.voxelPositiveY2);
 
-		/*SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveY, Color.green);
-		SolvePressureForce(dt, -pressure, forcePositiveX3, voxelTet.voxelPositiveY2, Color.blue);
-
-		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveX, Color.yellow);
-		SolvePressureForce(dt, -pressure, forcePositiveX3, voxelTet.voxelPositiveX2, Color.red);*/
-
-		/*SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeY, Color.red);
-		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeY2, Color.yellow);*/
-
-		//SolveExternalVoxelPressureForce(dt,pressure);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
@@ -461,6 +456,24 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	private void lockFaces2(int[] voxIDs, int[] face)
+	{
+        for (int i = 0; i < voxIDs.Length; i++)
+        {
+			for (int j = 0; j < 4; j++)
+            {
+				int[] vertexMapping = tetraData.GetVertexMapping;
+                // The id's of all particles on the face
+                invMass[vertexMapping[8 * (voxIDs[i]+98) + face[0]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+98) + face[1]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+98) + face[2]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+98) + face[3]]] = 0f;
+			}
+		}
+		int[] vertexMapping2 = tetraData.GetVertexMapping;
+		Debug.DrawRay(pos[vertexMapping2[8 * (voxIDs[0]+98) + face[0]]], gravity, Color.black);
+	}
+
 	//Damping coefficient currently implemented incorrectly - as it damps gravity as well. Just here for simulation stability
 	//When dynamic effects are being looked at this will need to be correct.
     private void forceMove(float dt, float dampingCoefficient)
@@ -590,7 +603,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face, Color color)
+	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face)
     {
         for (int i = 0; i < voxIDs.Length; i++)
         {
@@ -622,10 +635,10 @@ public class SoftBodySimulationVectors : IGrabbable
                 Vector3 normalF1 = crossF1.normalized;
                 Vector3 normalF2 = crossF1.normalized;
 
-				Debug.DrawRay(pos[id0], normalF1, color);
+				/*Debug.DrawRay(pos[id0], normalF1, color);
 				Debug.DrawRay(pos[id1], normalF1, color);
 				Debug.DrawRay(pos[id2], normalF1, color);
-				Debug.DrawRay(pos[id3], normalF1, color);
+				Debug.DrawRay(pos[id3], normalF1, color);*/
 
                 float pressureForceF1 = (pressure * faceAreaF1)/3f;
                 float pressureForceF2 = (pressure * faceAreaF2)/3f;
@@ -662,6 +675,80 @@ public class SoftBodySimulationVectors : IGrabbable
             }
         }
     }
+
+	private void SolvePressureForce2(float dt, float pressure, int[] voxIDs, int[] face)
+    {
+        for (int i = 0; i < voxIDs.Length; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                // The id's of all particles on the face
+				int[] vertexMapping = tetraData.GetVertexMapping;
+
+				int id0 = vertexMapping[8 * (voxIDs[i]+98) + face[0]];
+                int id1 = vertexMapping[8 * (voxIDs[i]+98) + face[1]];//This is free
+                int id2 = vertexMapping[8 * (voxIDs[i]+98) + face[2]];
+                int id3 = vertexMapping[8 * (voxIDs[i]+98) + face[3]];//This is free
+
+				//Something about this does not work for all faces due to the way in which the triangles are formed.
+                Vector3 id0_minus_id1 = pos[id0] - pos[id1];
+                Vector3 id2_minus_id1 = pos[id2] - pos[id1];
+
+				Vector3 id0_minus_id3 = pos[id0] - pos[id3];
+				Vector3 id2_minus_id3 = pos[id2] - pos[id3];
+
+
+                Vector3 crossF1 = Vector3.Cross(id0_minus_id1, id2_minus_id1);
+                Vector3 crossF2 = Vector3.Cross(id0_minus_id3, id2_minus_id3);
+
+                float faceAreaF1 = crossF1.magnitude * 0.5f;
+                float faceAreaF2 = crossF2.magnitude * 0.5f;
+
+                //Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
+                Vector3 normalF1 = crossF1.normalized;
+                Vector3 normalF2 = crossF1.normalized;
+
+				/*Debug.DrawRay(pos[id0], normalF1, color);
+				Debug.DrawRay(pos[id1], normalF1, color);
+				Debug.DrawRay(pos[id2], normalF1, color);
+				Debug.DrawRay(pos[id3], normalF1, color);*/
+
+                float pressureForceF1 = (pressure * faceAreaF1)/3f;
+                float pressureForceF2 = (pressure * faceAreaF2)/3f;
+
+
+                // Apply pressure force to each vertex of the face
+                if (invMass[id0] != 0)
+                {
+                    vel[id0] += (pressureForceF1 * invMass[id0]) * normalF1 * dt;
+                }
+                if (invMass[id1] != 0)
+                {
+                    vel[id1] += (pressureForceF1 * invMass[id1]) * normalF1 * dt;
+                }
+                if (invMass[id2] != 0)
+                {
+                    vel[id2] += (pressureForceF1 * invMass[id2]) * normalF1 * dt;
+                }
+
+				// Apply pressure force to each vertex of the face
+                if (invMass[id0] != 0)
+                {
+                    vel[id0] += (pressureForceF2 * invMass[id0]) * normalF2 * dt;
+                }
+                if (invMass[id2] != 0)
+                {
+                    vel[id2] += (pressureForceF2 * invMass[id1]) * normalF2 * dt;
+                }
+                if (invMass[id3] != 0)
+                {
+                    vel[id3] += (pressureForceF2 * invMass[id2]) * normalF2 * dt;
+                }
+
+            }
+        }
+    }
+	
 	
 	//
 	// Unity mesh 
