@@ -26,6 +26,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	public static int[] lockFaceFront = new int[] {0,2,4,6,96,98,100,102,192,194,258,275};*/
 
 	public static int[] forcePositiveX = new int[] {29,30,31,33,34,35,37,38,39};
+	public static int[] forcePositiveX2 = new int[] {3};
+	public static int[] forcePositiveX3 = new int[] {2};
+
+
 	public static int[] forceNegativeX = new int[] {68,69,70,71,72,73,74,75,76};
 
 	public static int[] forcePositiveY = new int[] {89,90,91,92,93,94,95,96,97};
@@ -35,6 +39,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	public static int[] forceNegativeZ = new int[] {6,7,8,11,12,13,16,17,18};
 
 	public static int[] lockFaceFront = new int[] {0,1,2,3,4,25,26,27,28,45,46,47,48,65,66,67,80,81,82,83,84,85,86,87,88};
+	public static int[] lockFaceFront2 = new int[] {0};
+
 
 
 
@@ -283,14 +289,40 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Handle the soft body physics
 	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
 	{
-		SolvePressureForce(dt, pressure, forceNegativeY, voxelTet.voxelNegativeY);
-		SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveX,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelPositiveX2,  Color.red);
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeX,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeX2,  Color.red);
+
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveY,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelPositiveY2,  Color.red);
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeY,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeY2,  Color.red);
+
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveZ,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelPositiveZ2,  Color.red);
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeZ,  Color.green);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeZ2,  Color.red);
+
+		/*SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, forceNegativeZ, voxelTet.voxelNegativeZ);
 		SolvePressureForce(dt, pressure, forcePositiveZ, voxelTet.voxelPositiveZ);
 		SolvePressureForce(dt, pressure, forceNegativeX, voxelTet.voxelNegativeX);
-		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX);
+		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX);*/
+		
 
-		lockFaces(lockFaceFront, voxelTet.voxelPositiveY);
+		//lockFaces(lockFaceFront, voxelTet.voxelPositiveY);
+
+		/*SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveY, Color.green);
+		SolvePressureForce(dt, -pressure, forcePositiveX3, voxelTet.voxelPositiveY2, Color.blue);
+
+		SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelPositiveX, Color.yellow);
+		SolvePressureForce(dt, -pressure, forcePositiveX3, voxelTet.voxelPositiveX2, Color.red);*/
+
+		/*SolvePressureForce(dt, pressure, forcePositiveX2, voxelTet.voxelNegativeY, Color.red);
+		SolvePressureForce(dt, pressure, forcePositiveX3, voxelTet.voxelNegativeY2, Color.yellow);*/
+
+		//SolveExternalVoxelPressureForce(dt,pressure);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
@@ -558,7 +590,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face)
+	private void SolvePressureForce(float dt, float pressure, int[] voxIDs, int[] face, Color color)
     {
         for (int i = 0; i < voxIDs.Length; i++)
         {
@@ -590,12 +622,10 @@ public class SoftBodySimulationVectors : IGrabbable
                 Vector3 normalF1 = crossF1.normalized;
                 Vector3 normalF2 = crossF1.normalized;
 
-
-
-				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
-				Debug.DrawRay(pos[id1], -normal, Color.blue);
-				Debug.DrawRay(pos[id2], -normal, Color.blue);
-				Debug.DrawRay(pos[id3], -normal, Color.blue);*/
+				Debug.DrawRay(pos[id0], normalF1, color);
+				Debug.DrawRay(pos[id1], normalF1, color);
+				Debug.DrawRay(pos[id2], normalF1, color);
+				Debug.DrawRay(pos[id3], normalF1, color);
 
                 float pressureForceF1 = (pressure * faceAreaF1)/3f;
                 float pressureForceF2 = (pressure * faceAreaF2)/3f;
@@ -701,10 +731,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		int[] vertexMapping = tetraData.GetVertexMapping;
 
 		//4 is the index position on the specific voxel. *8 is for moving across the voxel id and then the number after is the voxelID to access
-		Debug.DrawRay(pos[vertexMapping[4 + 8 * 89]], gravity, Color.blue);
+		/*Debug.DrawRay(pos[vertexMapping[4 + 8 * 89]], gravity, Color.blue);
 		Debug.DrawRay(pos[vertexMapping[4 + 8 * 90]], gravity, Color.red);
 		Debug.DrawRay(pos[vertexMapping[4 + 8 * 91]], gravity, Color.green);
-		Debug.DrawRay(pos[vertexMapping[4 + 8 * 92]], gravity, Color.yellow);
+		Debug.DrawRay(pos[vertexMapping[4 + 8 * 92]], gravity, Color.yellow);*/
 	}
 
 	//
