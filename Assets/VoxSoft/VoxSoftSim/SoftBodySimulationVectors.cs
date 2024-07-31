@@ -283,14 +283,14 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Handle the soft body physics
 	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
 	{
-		SolvePressureForce(dt, pressure, forceNegativeY, voxelTet.voxelTop);
-		SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelBottom);
-		SolvePressureForce(dt, pressure, forceNegativeZ, voxelTet.voxelFront);
-		SolvePressureForce(dt, pressure, forcePositiveZ, voxelTet.voxelBack);
-		SolvePressureForce(dt, pressure, forceNegativeX, voxelTet.voxelRight);
-		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelLeft);
+		SolvePressureForce(dt, pressure, forceNegativeY, voxelTet.voxelNegativeY);
+		SolvePressureForce(dt, pressure, forcePositiveY, voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, forceNegativeZ, voxelTet.voxelNegativeZ);
+		SolvePressureForce(dt, pressure, forcePositiveZ, voxelTet.voxelPositiveZ);
+		SolvePressureForce(dt, pressure, forceNegativeX, voxelTet.voxelNegativeX);
+		SolvePressureForce(dt, pressure, forcePositiveX, voxelTet.voxelPositiveX);
 
-		lockFaces(lockFaceFront, voxelTet.voxelBottom);
+		lockFaces(lockFaceFront, voxelTet.voxelPositiveY);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);

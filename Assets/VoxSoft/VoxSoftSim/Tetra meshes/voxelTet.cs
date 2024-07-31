@@ -316,54 +316,16 @@ public class voxelTet : TetrahedronData
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
 	};
 
-    public static int[] voxelRight = new int[] {1, 6, 2, 5};
-    public static int[] voxelLeft = new int[] {0, 7, 3, 4};
-    public static int[] voxelFront = new int[] {1, 7, 0, 6};
-    public static int[] voxelBack = new int[] {3, 5, 2, 4};
-    public static int[] voxelTop = new int[] {1, 5, 3, 7};
-    public static int[] voxelBottom = new int[] {0, 4, 2, 6};
+	//This gives the first face that is intersected when moving in the direction from outside the voxel.
+    public static int[] voxelNegativeX = new int[] {1, 6, 2, 5};
+    public static int[] voxelPositiveX = new int[] {0, 7, 3, 4};
+    public static int[] voxelNegativeZ = new int[] {1, 7, 0, 6};
+    public static int[] voxelPositiveZ = new int[] {3, 5, 2, 4};
+    public static int[] voxelNegativeY = new int[] {1, 5, 3, 7};
+    public static int[] voxelPositiveY = new int[] {0, 4, 2, 6};
 
 	public int[] vertexMap()
 	{
 		return vertexMapping;
-	}
-
-	private void combineVoxelsLegacy() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
-	{
-		for (int i = 0; i < vertsVoxelMesh.Length/3; i++)
-		{
-			for (int j = 0; j < vertsVoxelMesh.Length/3; j++)
-			{
-				if(vertsVoxelMesh[3*i]==vertsVoxelMesh[3*j] && vertsVoxelMesh[3*i+1]==vertsVoxelMesh[3*j+1] && vertsVoxelMesh[3*i+2]==vertsVoxelMesh[3*j+2] && i!=j)
-				{
-					connectionCount++;
-					
-					for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
-					{
-						if (tetEdgeIdsVoxelMesh[k] == j)
-						{
-							tetEdgeIdsVoxelMesh[k] = i;
-						}
-					}
-
-					for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
-					{
-						if (tetIdsVoxelMesh[l] == j)
-						{
-							tetIdsVoxelMesh[l] = i;
-						}
-					}
-
-					for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
-					{
-						if (tetSurfaceTriIdsVoxelMesh[m] == j)
-						{
-							tetSurfaceTriIdsVoxelMesh[m] = i;
-						}
-					}
-				}
-			}
-		}
-		Debug.Log("CC = " + connectionCount);
 	}
 }
