@@ -38,32 +38,32 @@ public class voxelTet : TetrahedronData
     {
         voxelScale = scale;
         float startTime = Time.realtimeSinceStartup;
-
-		makeCuboid(0, 0, 0, 5, 5, 1);
-		makeCuboid(4, 0, 1, 1, 5, 4);
-		makeCuboid(0, 0, 4, 4, 5, 1);
-		makeCuboid(0, 0, 1, 1, 5, 3);
-		makeCuboid(1, 0, 1, 3, 1, 3);
-		makeCuboid(1, 4, 1, 3, 1, 3);
-
-
+		makeCubicActuator();
         Debug.Log("Number of Voxels = " + globalVoxelCount);
-        //Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
         combineVoxels(startTime);
-        //Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
     }
 
     //
     // Design Library
     //
 
-    private void makeActuator(int posX, int posY, int posZ, 
+    private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
 	float totalHeight)
 	{
 		makeCylinder(posX,posY,posZ,width,capHeight);
 		makeTube(posX,(int)capHeight,posZ,width,width-wallThickness,totalHeight-2*capHeight);
 		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,width,capHeight);
+	}
+
+	void makeCubicActuator()
+	{
+		makeCuboid(0, 0, 0, 5, 5, 1);
+		makeCuboid(4, 0, 1, 1, 5, 4);
+		makeCuboid(0, 0, 4, 4, 5, 1);
+		makeCuboid(0, 0, 1, 1, 5, 3);
+		makeCuboid(1, 0, 1, 3, 1, 3);
+		makeCuboid(1, 4, 1, 3, 1, 3);
 	}
 
 	private void makeActuatorPneuflex()
@@ -300,7 +300,6 @@ public class voxelTet : TetrahedronData
 	//unlike tetIds the edges should not be repeated with connecting tetrahedrals as they will be looped over.
 	private int[] tetEdgeIds =
 	{
-		//0,2, 2,1, 1,0, 1,3, 3,0, 2,3
 		0,1, 1,2, 2,0, 0,3, 1,3, 2,3, //Centre Tetrahedron
 		0,4, 2,4, 3,4, //Outer Tetrahedron 1
 		1,5, 2,5, 3,5, //Outer Tetrahedron 2
@@ -311,7 +310,6 @@ public class voxelTet : TetrahedronData
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
 	private int[] tetSurfaceTriIds =
 	{
-		//0,1,3, 1,2,3, 0,3,2, 0,2,1, //Inner Tetrahedron - Don't need to render inner tetrahedron as it is covered by the outer tetrahedrons
 		0,3,4, 4,3,2, 0,4,2, 2,3,0, //Outer Tetrahedron 1
 		2,3,5, 2,5,1, 3,1,5, 1,3,2, //Outer Tetrahedron 2
 		0,6,1, 0,2,6, 1,6,2, 0,1,2, //Outer Tetrahedron 3
