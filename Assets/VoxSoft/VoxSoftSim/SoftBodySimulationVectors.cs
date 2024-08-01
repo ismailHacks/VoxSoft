@@ -298,6 +298,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, frontForce, voxelTet.voxelLeft);
 
 		lockFaces(lockFaceFront, voxelTet.voxelLeft);
+		lockFaces2(lockFaceFront, voxelTet.voxelPositiveX2);
+
 
 		//SolveExternalVoxelPressureForce(dt, pressure);
 		//lockFaces(beamStartVoxels, voxelTet.voxelLeft);
@@ -454,6 +456,23 @@ public class SoftBodySimulationVectors : IGrabbable
                 invMass[vertexMapping[8 * voxIDs[i] + face[1]]] = 0f;
                 invMass[vertexMapping[8 * voxIDs[i] + face[2]]] = 0f;
                 invMass[vertexMapping[8 * voxIDs[i] + face[3]]] = 0f;
+			}
+		}
+	}
+
+	private void lockFaces2(int[] voxIDs, int[] face)
+	{
+        for (int i = 0; i < voxIDs.Length; i++)
+        {
+			for (int j = 0; j < 4; j++)
+            {
+				int[] vertexMapping = tetraData.GetVertexMapping;
+                // The id's of all particles on the face
+				// Need to fix for voxID's and TetID's
+                invMass[vertexMapping[8 * (voxIDs[i]+292) + face[0]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+292) + face[1]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+292) + face[2]]] = 0f;
+                invMass[vertexMapping[8 * (voxIDs[i]+292) + face[3]]] = 0f;
 			}
 		}
 	}
