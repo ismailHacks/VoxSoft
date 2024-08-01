@@ -174,7 +174,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			invMass[tetIds[4 * i + 2]] += pInvMass;
 			invMass[tetIds[4 * i + 3]] += pInvMass;*/
 		}
-
+		totalMass = totalMass/2;
 		float pMass = totalMass/numParticles;
 		Debug.Log("Num Vertices = " + numParticles);
 		Debug.Log("Mass = " + totalMass);
@@ -752,7 +752,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		fitness = Mathf.Exp(fitnessExponential*fitness);
 		//Debug.Log(pos[beamLowerDisplacementPoss[0]].z);
-		Debug.Log(fitness);
+		//Debug.Log(fitness);
 		return fitness;
 	}
 	
