@@ -178,7 +178,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			invMass[tetIds[4 * i + 2]] += pInvMass;
 			invMass[tetIds[4 * i + 3]] += pInvMass;*/
 		}
-
+		totalMass = totalMass/2;
 		float pMass = totalMass/numParticles;
 		Debug.Log("Num Vertices = " + numParticles);
 		Debug.Log("Mass = " + totalMass);
