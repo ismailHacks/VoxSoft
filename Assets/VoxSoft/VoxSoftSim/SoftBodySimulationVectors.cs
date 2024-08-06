@@ -769,6 +769,16 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
 
+		Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[5]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[6]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[7]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[8]].x));
+
 		//To calculate difference between real and simulated beam.
 		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement - beamLowerDisplacementReal[0])
 		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement - beamLowerDisplacementReal[1])
