@@ -18,20 +18,20 @@ public class SoftBodySimulationVectors : IGrabbable
 	private float fitnessExponential = -10f;
 	public bool converged = false;
 	//public static int[] beamStartVoxels = new int[] {0}; //For 1 Voxel
-	public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
-	//public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
+	//public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
+	public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
 	//public static int[] beamStartVoxels = new int[] {0}; //For 9 Voxels
 	
 	//public static int[] beamLowerDisplacementPoss = new int[] {0};//For 1 Voxel
-	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
-	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
+	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
+	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
 	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
-	public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f}; //EcoFlex 00-20
+	//public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f}; //EcoFlex 00-20
 	//public static float[] beamLowerDisplacementReal = new float[] {-0.002396238f, -0.008284655f, -0.016026766f, -0.024868433f, -0.034824125f, -0.045137897f, -0.055279863f, -0.066024053f, -0.07699792f}; //Ecoflex 00-30
 	//public static float[] beamLowerDisplacementReal = new float[] {-0.001433387f, -0.005749836f, -0.01109427f, -0.01852001f, -0.025829921f, -0.032926272f, -0.041255118f, -0.049569486f, -0.057872995f}; //Ecoflex 00-50
 
-	public static float[] beamHorizontalDisplacementReal = new float[] {0.005220943f, 0.011418510f, 0.015991443f, 0.019721346f, 0.022815523f, 0.025690113f, 0.027938190f, 0.030387426f, 0.032762955f}; //EcoFlex 00-20
+	//public static float[] beamHorizontalDisplacementReal = new float[] {0.005220943f, 0.011418510f, 0.015991443f, 0.019721346f, 0.022815523f, 0.025690113f, 0.027938190f, 0.030387426f, 0.032762955f}; //EcoFlex 00-20
 	//public static float[] beamHorizontalDisplacementReal = new float[] {0.006705169f, 0.014281319f, 0.020839020f, 0.026049544f, 0.031029649f, 0.035349221f, 0.040049752f, 0.044051348f, 0.048300260f}; //Ecoflex 00-30
 	//public static float[] beamHorizontalDisplacementReal = new float[] {0.007641537f, 0.016321729f, 0.023991086f, 0.032161224f, 0.039223154f, 0.045399445f, 0.052629847f, 0.059384199f, 0.066157098f}; //Ecoflex 00-50
 
@@ -205,10 +205,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		float dt = Time.fixedDeltaTime;
 
 		//ShrinkWalls(dt);
-		convergenceSetup();
+		//convergenceSetup();
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-		converged = convergenceDetect(sensitivity, dt);
-		fitnessCalculate();
+		//converged = convergenceDetect(sensitivity, dt);
+		//fitnessCalculate();
 		//Debug.Log(converged1);
 	}
 
@@ -255,7 +255,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		{	
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-			//HandleEnvironmentCollision();
+			HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
 		debugLog();
@@ -299,14 +299,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Solve distance constraint
-	//2 particles:
-	//Positions: x0, x1
-	//Inverse mass: w0, w1
-	//Rest length: l_rest
-	//Current length: l
-	//Constraint function: C = l - l_rest which is 0 when the constraint is fulfilled 
-	//Gradients of constraint function grad_C0 = (x1 - x0) / |x1 - x0| and grad_C1 = -grad_C0
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (12:10)
 	private void SolveEdges(float dt, float edgeCompliance)
 	{
 		float alpha = edgeCompliance / (dt * dt);
@@ -362,18 +354,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	//TODO: This method is the bottleneck
 	//Solve volume constraint
-	//Constraint function is now defined as C = 6(V - V_rest). The 6 is to make the equation simpler because of volume
-	//4 gradients:
-	//grad_C1 = (x4-x2)x(x3-x2) <- direction perpendicular to the triangle opposite of p1 to maximally increase the volume when moving p1
-	//grad_C2 = (x3-x1)x(x4-x1)
-	//grad_C3 = (x4-x1)x(x2-x1)
-	//grad_C4 = (x2-x1)x(x3-x1)
-	//V = 1/6 * ((x2-x1)x(x3-x1))*(x4-x1)
-	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
-	//delta_xi = -lambda * w_i * grad_Ci
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
 	private void SolveVolumes(float dt, float volumeCompliance)
 	{
 		float alpha = volumeCompliance / (dt * dt);
@@ -704,7 +685,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	// Convergence Criterion
 	//
 
-	private void convergenceSetup()
+	/*private void convergenceSetup()
 	{
 		for (int i = 0; i < 9; i++)
 		{
@@ -732,9 +713,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		{
 			return false;
 		}
-	}
+	}*/
 
-	public float fitnessCalculate()
+	/*public float fitnessCalculate()
 	{
 		float fitness = 0f;
 
@@ -754,7 +735,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		//Debug.Log(pos[beamLowerDisplacementPoss[0]].z);
 		//Debug.Log(fitness);
 		return fitness;
-	}
+	}*/
 	
 	private void debugLog()
 	{
@@ -769,7 +750,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
 
-		Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
@@ -777,7 +758,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[5]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[6]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].x));
+		+ " | " + (pos[beamLowerDisplacementPoss[8]].x));*/
 
 		//To calculate difference between real and simulated beam.
 		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement - beamLowerDisplacementReal[0])
@@ -790,7 +771,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
 
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
+		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
@@ -798,7 +779,25 @@ public class SoftBodySimulationVectors : IGrabbable
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);*/
+
+		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.cyan);*/
+
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement));*/
+
+		Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].x));
 	}
 
 	//

@@ -38,8 +38,8 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		makeCuboid(0,30,0,18,2,2);
-		makeCuboid2(0,30,0,18,2,2);
+		makeCuboid(0,30,0,10,2,2);
+		makeCuboid2(0,30,0,10,2,2);
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
