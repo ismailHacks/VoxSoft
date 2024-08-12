@@ -790,7 +790,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
 
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
+		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
@@ -798,7 +798,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);
+		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);*/
 	}
 
 	//
