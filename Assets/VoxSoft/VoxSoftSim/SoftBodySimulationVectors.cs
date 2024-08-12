@@ -17,25 +17,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	private float startingVerticalDisplacement = 0.15f;
 	private float fitnessExponential = -10f;
 	public bool converged = false;
-	//public static int[] beamStartVoxels = new int[] {0}; //For 1 Voxel
-	//public static int[] beamStartVoxels = new int[] {0, 18, 36, 54}; //For 72 Voxels
-	public static int[] beamStartVoxels = new int[] {0, 10, 20, 30}; //For 40 Voxels
-	//public static int[] beamStartVoxels = new int[] {0}; //For 9 Voxels
-	
-	//public static int[] beamLowerDisplacementPoss = new int[] {0};//For 1 Voxel
-	//public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74, 90, 106, 122, 138}; //For 72 Voxels
-	public static int[] beamLowerDisplacementPoss = new int[] {10, 26, 42, 58, 74}; //For 40 Voxels
-	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
-	//public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f}; //EcoFlex 00-20
-	//public static float[] beamLowerDisplacementReal = new float[] {-0.002396238f, -0.008284655f, -0.016026766f, -0.024868433f, -0.034824125f, -0.045137897f, -0.055279863f, -0.066024053f, -0.07699792f}; //Ecoflex 00-30
-	//public static float[] beamLowerDisplacementReal = new float[] {-0.001433387f, -0.005749836f, -0.01109427f, -0.01852001f, -0.025829921f, -0.032926272f, -0.041255118f, -0.049569486f, -0.057872995f}; //Ecoflex 00-50
+	public static int[] cubeFloorVoxels = new int[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
+	public static int[] cubeCompressionVoxels = new int[25];
 
-	//public static float[] beamHorizontalDisplacementReal = new float[] {0.005220943f, 0.011418510f, 0.015991443f, 0.019721346f, 0.022815523f, 0.025690113f, 0.027938190f, 0.030387426f, 0.032762955f}; //EcoFlex 00-20
-	//public static float[] beamHorizontalDisplacementReal = new float[] {0.006705169f, 0.014281319f, 0.020839020f, 0.026049544f, 0.031029649f, 0.035349221f, 0.040049752f, 0.044051348f, 0.048300260f}; //Ecoflex 00-30
-	//public static float[] beamHorizontalDisplacementReal = new float[] {0.007641537f, 0.016321729f, 0.023991086f, 0.032161224f, 0.039223154f, 0.045399445f, 0.052629847f, 0.059384199f, 0.066157098f}; //Ecoflex 00-50
-
-	public static float[] beamZDisplacementReal = new float[] {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f};
 
 
 	private readonly Vector3[] pos;
@@ -184,6 +169,12 @@ public class SoftBodySimulationVectors : IGrabbable
 			invMass[i] = 1/pMass;
 		}
 
+		for (int i = 0; i < cubeFloorVoxels.Length; i++)
+		{
+			cubeCompressionVoxels[i] = cubeFloorVoxels[i]+100;
+		}
+		
+		
 		//Rest edge length
 		for (int i = 0; i < restEdgeLengths.Length; i++)
 		{
@@ -292,7 +283,9 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
 		//SolveExternalVoxelPressureForce(dt, pressure);
-		lockFaces(beamStartVoxels, voxelTet.voxelLeft);
+		lockFaces(cubeFloorVoxels, voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, cubeCompressionVoxels, voxelTet.voxelNegativeY);
+
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
@@ -681,61 +674,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		return volume;
 	}
 
-	//
-	// Convergence Criterion
-	//
-
-	/*private void convergenceSetup()
-	{
-		for (int i = 0; i < 9; i++)
-		{
-			stabPrevPos[i] = pos[beamLowerDisplacementPoss[i]];
-		}
-	}
-
-	private bool convergenceDetect(float sensitivity, float dt)
-	{
-		float averageVel = 0;
-		for (int i = 0; i < 9; i++)
-		{
-			stabPos[i] = pos[beamLowerDisplacementPoss[i]];
-			stabVel[i] = (stabPrevPos[i] - stabPos[i])/dt;
-			averageVel += stabVel[i].magnitude;
-			averageVel = averageVel/9;
-		}
-		//Debug.Log(averageVel);
-
-		if (averageVel <= sensitivity)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}*/
-
-	/*public float fitnessCalculate()
-	{
-		float fitness = 0f;
-
-		for (int i = 0; i < 9; i++)
-		{
-			float fitnessValx;
-			float fitnessValy;
-			float fitnessValz;
-			fitnessValy = pos[beamLowerDisplacementPoss[i]].y - startingVerticalDisplacement - beamLowerDisplacementReal[i];
-			fitnessValx = pos[beamLowerDisplacementPoss[i]].x - beamHorizontalDisplacementReal[i];
-			fitnessValz = pos[beamLowerDisplacementPoss[i]].z - beamZDisplacementReal[i];
-
-			fitness += Mathf.Sqrt(fitnessValy*fitnessValy + fitnessValx*fitnessValx + fitnessValz*fitnessValz);
-		}
-
-		fitness = Mathf.Exp(fitnessExponential*fitness);
-		//Debug.Log(pos[beamLowerDisplacementPoss[0]].z);
-		//Debug.Log(fitness);
-		return fitness;
-	}*/
 	
 	private void debugLog()
 	{
@@ -771,6 +709,18 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
 
+
+		Debug.DrawRay(pos[cubeCompressionVoxels[0]*8], gravity, Color.yellow);
+		Debug.DrawRay(pos[cubeCompressionVoxels[1]*8], gravity, Color.green);
+		Debug.DrawRay(pos[cubeCompressionVoxels[2]*8], gravity, Color.blue);
+		Debug.DrawRay(pos[cubeCompressionVoxels[3]*8], gravity, Color.red);
+		Debug.DrawRay(pos[cubeCompressionVoxels[4]*8], gravity, Color.cyan);
+		Debug.DrawRay(pos[cubeCompressionVoxels[23]*8], gravity, Color.gray);
+
+
+		
+
+
 		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
 		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
@@ -793,11 +743,11 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement));*/
 
-		Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
+		/*Debug.Log("disps = " + (pos[cube[0]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].x));
+		+ " | " + (pos[beamLowerDisplacementPoss[4]].x));*/
 	}
 
 	//
