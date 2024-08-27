@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using System;
 
 
 //Same as SoftBodySimulation but is using Vector3 instead of arrays where an index in the array is x, y, or z 
@@ -246,10 +247,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		{	
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-			HandleEnvironmentCollision();
+			//HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
-		debugLog();
+		//debugLog();
 	}
 
 	//Move the particles and handle environment collision
@@ -283,8 +284,8 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
 		//SolveExternalVoxelPressureForce(dt, pressure);
-		lockFaces(cubeFloorVoxels, voxelTet.voxelPositiveY);
-		SolvePressureForce(dt, pressure, cubeCompressionVoxels, voxelTet.voxelNegativeY);
+		//lockFaces(cubeFloorVoxels, voxelTet.voxelPositiveY);
+		//SolvePressureForce(dt, pressure, cubeCompressionVoxels, voxelTet.voxelNegativeY);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
@@ -619,7 +620,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private void InitMesh(MeshFilter meshFilter, TetrahedronData tetraData)
 	{
 		Mesh mesh = new();
-		//Debug.Log(pos[0]);
+		mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
 		mesh.vertices = pos;
 		mesh.triangles = tetraData.GetTetSurfaceTriIds;
 
@@ -710,15 +711,12 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
 
 
-		Debug.DrawRay(pos[cubeCompressionVoxels[0]*8], gravity, Color.yellow);
+		/*Debug.DrawRay(pos[cubeCompressionVoxels[0]*8], gravity, Color.yellow);
 		Debug.DrawRay(pos[cubeCompressionVoxels[1]*8], gravity, Color.green);
 		Debug.DrawRay(pos[cubeCompressionVoxels[2]*8], gravity, Color.blue);
 		Debug.DrawRay(pos[cubeCompressionVoxels[3]*8], gravity, Color.red);
 		Debug.DrawRay(pos[cubeCompressionVoxels[4]*8], gravity, Color.cyan);
-		Debug.DrawRay(pos[cubeCompressionVoxels[23]*8], gravity, Color.gray);
-
-
-		
+		Debug.DrawRay(pos[cubeCompressionVoxels[23]*8], gravity, Color.gray);*/
 
 
 		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);

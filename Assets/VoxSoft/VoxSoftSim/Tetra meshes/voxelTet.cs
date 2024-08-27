@@ -11,15 +11,18 @@ using System.Security.Principal;
 using System.Threading.Tasks;
 using Unity.Collections;
 using Unity.Burst;
+using System.Linq; // Add this to use the Sum() method
 
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 250;
+	private static int cubicSize = 100;
+	//private static int noVoxels = cubicSize*cubicSize*cubicSize+cubicSize*2*cubicSize*2*cubicSize*2+cubicSize*5*cubicSize*5*cubicSize*5;
+	private static int noVoxels = cubicSize*cubicSize*cubicSize;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
-	
+
 	public int[] vertexMapping = new int[8*noVoxels];
 	public float[] vertsVoxelMesh = new float[24*noVoxels];
 	public int[] tetIdsVoxelMesh = new int[20*noVoxels];
@@ -33,25 +36,36 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
 
+	public ComputeShader combineVoxelsComputeShader;
+
 	public voxelTet(float scale)
 	{
+		combineVoxelsComputeShader = Resources.Load<ComputeShader>("CombineVoxelsGPU");
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		makeCuboid(0,0,0,5,5,5);
-		makeCuboid2(0,0,0,5,5,5);
+		//makeCuboid(0,0,0,cubicSize,cubicSize,cubicSize);
+		//makeCylinder(0,0,0,50,100);
+		//makeTube(0,0,0,50,42,100);
+		makeSphere(0,0,0,50);
+		//makeCylindricalActuator(0,0,0,25,5,5,40);
+		//makeSphericalActuator(0,0,0,20,5);
+		//makePneuflexActuator(0,0,0,10,14,10,5,10,5,2);
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
-		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
-		combineVoxels(startTime);
-		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
+
+		//combineVoxels();
+		//combineVoxelsOnGPU();
+		//combineVoxelsLegacy();
+
+		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
 	//
-	// Design Library
+	// Actuator Design Library
 	//
 
-	private void makeActuator(int posX, int posY, int posZ, 
+	private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
 	float totalHeight)
 	{
@@ -60,11 +74,52 @@ public class voxelTet : TetrahedronData
 		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,width,capHeight);
 	}
 
+	private void makePneuflexActuator(int posX, int posY, int posZ, 
+	int width, int maxHeight, int innerHeight,int innerLength, int cellLength, 
+	int numberCells, int wallThickness)
+	{
+		for (int i = 0; i < numberCells; i++)
+		{
+			makeCuboid(posX+i*(innerLength+cellLength),posY,posZ,innerLength,innerHeight,wallThickness);
+			makeCuboid(posX+i*(innerLength+cellLength),posY,posZ+width-wallThickness,innerLength,innerHeight,wallThickness);
+			makeCuboid(posX+i*(innerLength+cellLength),posY+innerHeight-wallThickness,posZ+wallThickness,innerLength,wallThickness,width-wallThickness*2);
+			makeCuboid(posX+i*(innerLength+cellLength),posY,posZ+wallThickness,innerLength,wallThickness,width-wallThickness*2);
+			
+			makeCuboid(posX+innerLength+i*(innerLength+cellLength),posY,posZ,cellLength,maxHeight,wallThickness);
+			makeCuboid(posX+innerLength+i*(innerLength+cellLength),posY,posZ+width-wallThickness,cellLength,maxHeight,wallThickness);
+			makeCuboid(posX+innerLength+i*(innerLength+cellLength),posY+maxHeight-wallThickness,posZ+wallThickness,cellLength,wallThickness,width-wallThickness*2);
+			makeCuboid(posX+innerLength+i*(innerLength+cellLength),posY,posZ+wallThickness,cellLength,wallThickness,width-wallThickness*2);
+
+			makeCuboid(posX+innerLength+i*(innerLength+cellLength),posY+innerHeight-wallThickness,posZ+wallThickness,wallThickness,maxHeight-innerHeight,width-wallThickness*2);
+			makeCuboid(posX+innerLength+cellLength-wallThickness+i*(innerLength+cellLength),posY+innerHeight-wallThickness,posZ+wallThickness,wallThickness,maxHeight-innerHeight,width-wallThickness*2);
+		}
+		makeCuboid(posX+numberCells*(innerLength+cellLength)-wallThickness,posY+wallThickness,posZ+wallThickness,wallThickness,innerHeight-wallThickness*2,width-wallThickness*2);
+	}
+
+	private void makeSphericalActuator(int posX, int posY, int posZ, 
+	float radius, float wallThickness)
+	{
+		for (int k = (int)-radius; k < radius; k++)
+		{
+			for (int j = (int)-radius; j < radius; j++)
+			{
+				for (int i = (int)-radius; i < radius; i++)
+				{
+					float distVal = Mathf.Sqrt(i*i+j*j+k*k);
+					if (distVal < radius && distVal > (radius-wallThickness))
+					{
+						makeVoxel(posX+i, posY+k, posZ+j);
+					}
+				}
+			}
+		}
+	}
+
 	//
 	// Core Shape Library
 	//
 
-	private void makeGyroid(int posX, int posY, int posZ, float width, float sensitivity)
+	private void makeGyroid(int posX, int posY, int posZ, float width, float sensitivity, float tp)
 	{
 		for (int i = 0; i < (int)width; i++)
 		{
@@ -72,7 +127,7 @@ public class voxelTet : TetrahedronData
 			{
 				for (int k = (int)-width/2; k < width/2; k++)
 				{
-					float gyroid = Mathf.Sin(i)*Mathf.Cos(j) + Mathf.Sin(j)*Mathf.Cos(k) + Mathf.Sin(k)*Mathf.Cos(i);
+					float gyroid = Mathf.Sin(i/tp)*Mathf.Cos(j/tp) + Mathf.Sin(j/tp)*Mathf.Cos(k/tp) + Mathf.Sin(k/tp)*Mathf.Cos(i/tp);
 					if(gyroid < sensitivity && gyroid > -sensitivity)
 					{
 						makeVoxel(i+posX,j+posY,k+posZ);
@@ -129,6 +184,29 @@ public class voxelTet : TetrahedronData
 			}
 		}
 	}
+	
+	//Currently gets messed up with environment collision
+	private void makeSphere(int posX, int posY, int posZ, int radius)
+	{
+		for (int k = -radius; k < radius; k++)
+		{
+			for (int j = -radius; j < radius; j++)
+			{
+				for (int i = -radius; i < radius; i++)
+				{
+					float distVal = Mathf.Sqrt(i*i+j*j+k*k);
+					if (distVal < radius)
+					{
+						makeVoxel(posX+i, posY+k, posZ+j);
+					}
+				}
+			}
+		}
+	}
+
+	//
+	// Core Shape Library Alternate Mesh
+	//
 
 	private void makeCuboid2(int posX, int posY, int posZ, int length, int height, int width)
 	{
@@ -200,7 +278,7 @@ public class voxelTet : TetrahedronData
 		globalVoxelCount++;
 	}
 
-	private void combineVoxels(float startTime)
+	private void combineVoxels()
 	{
 		HashSet<int> processedIndices = new HashSet<int>();
 		int numVertices = vertsVoxelMesh.Length / 3;
@@ -268,6 +346,63 @@ public class voxelTet : TetrahedronData
 		//Debug.Log("CC = " + connectionCount + " - GVC = " + globalVoxelCount);
 	}
 
+	private void combineVoxelsOnGPU()
+	{
+		int kernelIndex = combineVoxelsComputeShader.FindKernel("CSMain");
+		if (kernelIndex < 0)
+		{
+			Debug.LogError("Failed to find kernel 'CSMain'");
+			return;
+		}
+
+		int numVertices = vertsVoxelMesh.Length/3;
+		
+		// Create buffers
+		ComputeBuffer vertsVoxelMeshBuffer = new ComputeBuffer(numVertices, sizeof(float) * 3);
+		ComputeBuffer vertexMappingBuffer = new ComputeBuffer(numVertices, sizeof(int));
+		ComputeBuffer tetEdgeIdsVoxelMeshBuffer = new ComputeBuffer(tetEdgeIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer tetIdsVoxelMeshBuffer = new ComputeBuffer(tetIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer tetSurfaceTriIdsVoxelMeshBuffer = new ComputeBuffer(tetSurfaceTriIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer processedIndicesBuffer = new ComputeBuffer(numVertices, sizeof(int));
+
+		// Set data to buffers
+		vertsVoxelMeshBuffer.SetData(vertsVoxelMesh);
+		vertexMappingBuffer.SetData(new int[numVertices]);
+		tetEdgeIdsVoxelMeshBuffer.SetData(tetEdgeIdsVoxelMesh);
+		tetIdsVoxelMeshBuffer.SetData(tetIdsVoxelMesh);
+		tetSurfaceTriIdsVoxelMeshBuffer.SetData(tetSurfaceTriIdsVoxelMesh);
+		processedIndicesBuffer.SetData(new int[numVertices]);
+
+		// Set buffers and constants to the compute shader
+		combineVoxelsComputeShader.SetBuffer(0, "vertsVoxelMesh", vertsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "vertexMapping", vertexMappingBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetEdgeIdsVoxelMesh", tetEdgeIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetIdsVoxelMesh", tetIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetSurfaceTriIdsVoxelMesh", tetSurfaceTriIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "processedIndices", processedIndicesBuffer);
+		combineVoxelsComputeShader.SetInt("bufferSize", numVertices); // Pass the buffer size as a constant
+
+		// Calculate the number of thread groups
+		int threadGroups = Mathf.CeilToInt(numVertices / 256.0f);
+
+		// Dispatch the compute shader
+		combineVoxelsComputeShader.Dispatch(0, threadGroups, 1, 1);
+
+		// Get the result back
+		int[] vertexMapping = new int[numVertices];
+		vertexMappingBuffer.GetData(vertexMapping);
+
+		// Cleanup
+		vertsVoxelMeshBuffer.Release();
+		vertexMappingBuffer.Release();
+		tetEdgeIdsVoxelMeshBuffer.Release();
+		tetIdsVoxelMeshBuffer.Release();
+		tetSurfaceTriIdsVoxelMeshBuffer.Release();
+		processedIndicesBuffer.Release();
+
+		// Use vertexMapping as needed
+	}
+	
 	//Vertices (x, y, z) for a tetrahedral voxel
 	//Provides the vertices of each particle in the voxel
 	private float[] verts =
@@ -401,6 +536,6 @@ public class voxelTet : TetrahedronData
 				}
 			}
 		}
-		Debug.Log("CC = " + connectionCount);
+		//Debug.Log("CC = " + connectionCount);
 	}
 }
