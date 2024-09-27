@@ -247,7 +247,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		{	
 			PreSolve(sdt, gravity);
 			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-			//HandleEnvironmentCollision();
+			HandleEnvironmentCollision();
 			PostSolve(sdt);
 		}
 		//debugLog();
@@ -340,7 +340,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
 			float lambda = -C / (wTot + alpha);
 			//float lambda = -C / (wTot);
-
 			
 			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
 			pos[id0] += lambda * w0 * gradC;
@@ -394,7 +393,7 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			float C = 6*(vol - restVol);
 			float lambda = -C / (wTimesGrad + alpha);
-			
+
             //Move each vertex
             for (int j = 0; j < 4; j++)
             {

@@ -16,7 +16,7 @@ using System.Linq; // Add this to use the Sum() method
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int cubicSize = 100;
+	private static int cubicSize = 7;
 	//private static int noVoxels = cubicSize*cubicSize*cubicSize+cubicSize*2*cubicSize*2*cubicSize*2+cubicSize*5*cubicSize*5*cubicSize*5;
 	private static int noVoxels = cubicSize*cubicSize*cubicSize;
 	public static float voxelScale;
@@ -44,19 +44,17 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		//makeCuboid(0,0,0,cubicSize,cubicSize,cubicSize);
+		makeCuboid(0,0,0,cubicSize,cubicSize,cubicSize);
 		//makeCylinder(0,0,0,50,100);
 		//makeTube(0,0,0,50,42,100);
-		makeSphere(0,0,0,50);
+		//makeSphere(0,0,0,50);
 		//makeCylindricalActuator(0,0,0,25,5,5,40);
 		//makeSphericalActuator(0,0,0,20,5);
 		//makePneuflexActuator(0,0,0,10,14,10,5,10,5,2);
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
 
-		//combineVoxels();
-		//combineVoxelsOnGPU();
-		//combineVoxelsLegacy();
+		combineVoxels();
 
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
@@ -280,127 +278,59 @@ public class voxelTet : TetrahedronData
 
 	private void combineVoxels()
 	{
-		HashSet<int> processedIndices = new HashSet<int>();
 		int numVertices = vertsVoxelMesh.Length / 3;
 		vertexMapping = new int[numVertices];
+		Dictionary<Vector3, int> positionToIndex = new Dictionary<Vector3, int>();
+		Dictionary<Vector3, int> positionInternalCount = new Dictionary<Vector3, int>();
+		connectionCount = 0;
 
-		for (int v = 0; v < numVertices; v++)
+		for (int i = 0; i < numVertices; i++)
 		{
-			vertexMapping[v] = v;
-		}
-
-		//Debug.Log("VB = " + vertexMapping[2]);
-
-		for (int i = 0; i < vertsVoxelMesh.Length / 3; i++)
-		{
-			if (processedIndices.Contains(i))
-			{
-				continue; // Skip already processed indices
-			}
-			int internalCount = 0;
 			Vector3 iPosition = new Vector3(vertsVoxelMesh[3 * i], vertsVoxelMesh[3 * i + 1], vertsVoxelMesh[3 * i + 2]);
 
-			for (int j = i + 1; j < vertsVoxelMesh.Length / 3; j++)
+			if (positionToIndex.TryGetValue(iPosition, out int existingIndex))
 			{
-				Vector3 jPosition = new Vector3(vertsVoxelMesh[3 * j], vertsVoxelMesh[3 * j + 1], vertsVoxelMesh[3 * j + 2]);
-				if (iPosition == jPosition)
+				// Check internalCount
+				if (!positionInternalCount.TryGetValue(iPosition, out int internalCount))
 				{
-					processedIndices.Add(j);
-					connectionCount++;
-					internalCount++;
-
-					if(internalCount > 7)
-					{
-						internalCount = 0;
-						continue;
-					}
-					
-					for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
-					{
-						if (tetEdgeIdsVoxelMesh[k] == j)
-						{
-							tetEdgeIdsVoxelMesh[k] = i;
-						}
-					}
-
-					for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
-					{
-						if (tetIdsVoxelMesh[l] == j)
-						{
-							tetIdsVoxelMesh[l] = i;
-						}
-					}
-
-					for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
-					{
-						if (tetSurfaceTriIdsVoxelMesh[m] == j)
-						{
-							tetSurfaceTriIdsVoxelMesh[m] = i;
-						}
-					}
-					vertexMapping[j] = i;
+					internalCount = 0;
 				}
+
+				if (internalCount >= 7)
+				{
+					// Skip mapping this duplicate
+					continue;
+				}
+
+				internalCount++;
+				positionInternalCount[iPosition] = internalCount;
+
+				vertexMapping[i] = existingIndex;
+				connectionCount++;
+			}
+			else
+			{
+				positionToIndex[iPosition] = i;
+				positionInternalCount[iPosition] = 0;
+				vertexMapping[i] = i;
 			}
 		}
-		//Debug.Log("VA = " + vertexMapping[11]);
-		//Debug.Log("CC = " + connectionCount + " - GVC = " + globalVoxelCount);
-	}
 
-	private void combineVoxelsOnGPU()
-	{
-		int kernelIndex = combineVoxelsComputeShader.FindKernel("CSMain");
-		if (kernelIndex < 0)
+		// Now update the indices in the arrays
+		for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
 		{
-			Debug.LogError("Failed to find kernel 'CSMain'");
-			return;
+			tetEdgeIdsVoxelMesh[k] = vertexMapping[tetEdgeIdsVoxelMesh[k]];
 		}
 
-		int numVertices = vertsVoxelMesh.Length/3;
-		
-		// Create buffers
-		ComputeBuffer vertsVoxelMeshBuffer = new ComputeBuffer(numVertices, sizeof(float) * 3);
-		ComputeBuffer vertexMappingBuffer = new ComputeBuffer(numVertices, sizeof(int));
-		ComputeBuffer tetEdgeIdsVoxelMeshBuffer = new ComputeBuffer(tetEdgeIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer tetIdsVoxelMeshBuffer = new ComputeBuffer(tetIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer tetSurfaceTriIdsVoxelMeshBuffer = new ComputeBuffer(tetSurfaceTriIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer processedIndicesBuffer = new ComputeBuffer(numVertices, sizeof(int));
+		for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
+		{
+			tetIdsVoxelMesh[l] = vertexMapping[tetIdsVoxelMesh[l]];
+		}
 
-		// Set data to buffers
-		vertsVoxelMeshBuffer.SetData(vertsVoxelMesh);
-		vertexMappingBuffer.SetData(new int[numVertices]);
-		tetEdgeIdsVoxelMeshBuffer.SetData(tetEdgeIdsVoxelMesh);
-		tetIdsVoxelMeshBuffer.SetData(tetIdsVoxelMesh);
-		tetSurfaceTriIdsVoxelMeshBuffer.SetData(tetSurfaceTriIdsVoxelMesh);
-		processedIndicesBuffer.SetData(new int[numVertices]);
-
-		// Set buffers and constants to the compute shader
-		combineVoxelsComputeShader.SetBuffer(0, "vertsVoxelMesh", vertsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "vertexMapping", vertexMappingBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetEdgeIdsVoxelMesh", tetEdgeIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetIdsVoxelMesh", tetIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetSurfaceTriIdsVoxelMesh", tetSurfaceTriIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "processedIndices", processedIndicesBuffer);
-		combineVoxelsComputeShader.SetInt("bufferSize", numVertices); // Pass the buffer size as a constant
-
-		// Calculate the number of thread groups
-		int threadGroups = Mathf.CeilToInt(numVertices / 256.0f);
-
-		// Dispatch the compute shader
-		combineVoxelsComputeShader.Dispatch(0, threadGroups, 1, 1);
-
-		// Get the result back
-		int[] vertexMapping = new int[numVertices];
-		vertexMappingBuffer.GetData(vertexMapping);
-
-		// Cleanup
-		vertsVoxelMeshBuffer.Release();
-		vertexMappingBuffer.Release();
-		tetEdgeIdsVoxelMeshBuffer.Release();
-		tetIdsVoxelMeshBuffer.Release();
-		tetSurfaceTriIdsVoxelMeshBuffer.Release();
-		processedIndicesBuffer.Release();
-
-		// Use vertexMapping as needed
+		for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
+		{
+			tetSurfaceTriIdsVoxelMesh[m] = vertexMapping[tetSurfaceTriIdsVoxelMesh[m]];
+		}
 	}
 	
 	//Vertices (x, y, z) for a tetrahedral voxel
@@ -537,5 +467,126 @@ public class voxelTet : TetrahedronData
 			}
 		}
 		//Debug.Log("CC = " + connectionCount);
+	}
+
+	private void combineVoxelsLegacy2()
+	{
+		HashSet<int> processedIndices = new HashSet<int>();
+		int numVertices = vertsVoxelMesh.Length / 3;
+		vertexMapping = new int[numVertices];
+
+		for (int v = 0; v < numVertices; v++)
+		{
+			vertexMapping[v] = v;
+		}
+
+		for (int i = 0; i < vertsVoxelMesh.Length / 3; i++)
+		{
+			if (processedIndices.Contains(i))
+			{
+				continue; // Skip already processed indices
+			}
+			int internalCount = 0;
+			Vector3 iPosition = new Vector3(vertsVoxelMesh[3 * i], vertsVoxelMesh[3 * i + 1], vertsVoxelMesh[3 * i + 2]);
+
+			for (int j = i + 1; j < vertsVoxelMesh.Length / 3; j++)
+			{
+				Vector3 jPosition = new Vector3(vertsVoxelMesh[3 * j], vertsVoxelMesh[3 * j + 1], vertsVoxelMesh[3 * j + 2]);
+				if (iPosition == jPosition)
+				{
+					processedIndices.Add(j);
+					connectionCount++;
+					internalCount++;
+
+					if(internalCount > 7)
+					{
+						internalCount = 0;
+						continue;
+					}
+					
+					for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
+					{
+						if (tetEdgeIdsVoxelMesh[k] == j)
+						{
+							tetEdgeIdsVoxelMesh[k] = i;
+						}
+					}
+
+					for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
+					{
+						if (tetIdsVoxelMesh[l] == j)
+						{
+							tetIdsVoxelMesh[l] = i;
+						}
+					}
+
+					for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
+					{
+						if (tetSurfaceTriIdsVoxelMesh[m] == j)
+						{
+							tetSurfaceTriIdsVoxelMesh[m] = i;
+						}
+					}
+					vertexMapping[j] = i;
+				}
+			}
+		}
+	}
+
+	private void combineVoxelsLegacyGPU()
+	{
+		int kernelIndex = combineVoxelsComputeShader.FindKernel("CSMain");
+		if (kernelIndex < 0)
+		{
+			Debug.LogError("Failed to find kernel 'CSMain'");
+			return;
+		}
+
+		int numVertices = vertsVoxelMesh.Length/3;
+		
+		// Create buffers
+		ComputeBuffer vertsVoxelMeshBuffer = new ComputeBuffer(numVertices, sizeof(float) * 3);
+		ComputeBuffer vertexMappingBuffer = new ComputeBuffer(numVertices, sizeof(int));
+		ComputeBuffer tetEdgeIdsVoxelMeshBuffer = new ComputeBuffer(tetEdgeIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer tetIdsVoxelMeshBuffer = new ComputeBuffer(tetIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer tetSurfaceTriIdsVoxelMeshBuffer = new ComputeBuffer(tetSurfaceTriIdsVoxelMesh.Length, sizeof(int));
+		ComputeBuffer processedIndicesBuffer = new ComputeBuffer(numVertices, sizeof(int));
+
+		// Set data to buffers
+		vertsVoxelMeshBuffer.SetData(vertsVoxelMesh);
+		vertexMappingBuffer.SetData(new int[numVertices]);
+		tetEdgeIdsVoxelMeshBuffer.SetData(tetEdgeIdsVoxelMesh);
+		tetIdsVoxelMeshBuffer.SetData(tetIdsVoxelMesh);
+		tetSurfaceTriIdsVoxelMeshBuffer.SetData(tetSurfaceTriIdsVoxelMesh);
+		processedIndicesBuffer.SetData(new int[numVertices]);
+
+		// Set buffers and constants to the compute shader
+		combineVoxelsComputeShader.SetBuffer(0, "vertsVoxelMesh", vertsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "vertexMapping", vertexMappingBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetEdgeIdsVoxelMesh", tetEdgeIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetIdsVoxelMesh", tetIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "tetSurfaceTriIdsVoxelMesh", tetSurfaceTriIdsVoxelMeshBuffer);
+		combineVoxelsComputeShader.SetBuffer(0, "processedIndices", processedIndicesBuffer);
+		combineVoxelsComputeShader.SetInt("bufferSize", numVertices); // Pass the buffer size as a constant
+
+		// Calculate the number of thread groups
+		int threadGroups = Mathf.CeilToInt(numVertices / 256.0f);
+
+		// Dispatch the compute shader
+		combineVoxelsComputeShader.Dispatch(0, threadGroups, 1, 1);
+
+		// Get the result back
+		int[] vertexMapping = new int[numVertices];
+		vertexMappingBuffer.GetData(vertexMapping);
+
+		// Cleanup
+		vertsVoxelMeshBuffer.Release();
+		vertexMappingBuffer.Release();
+		tetEdgeIdsVoxelMeshBuffer.Release();
+		tetIdsVoxelMeshBuffer.Release();
+		tetSurfaceTriIdsVoxelMeshBuffer.Release();
+		processedIndicesBuffer.Release();
+
+		// Use vertexMapping as needed
 	}
 }
