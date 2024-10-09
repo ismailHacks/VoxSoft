@@ -45,12 +45,6 @@ public class voxelTet : TetrahedronData
 		float startTime = Time.realtimeSinceStartup;
 
 		makeCuboid(0,0,0,cubicSize,cubicSize,cubicSize);
-		//makeCylinder(0,0,0,50,100);
-		//makeTube(0,0,0,50,42,100);
-		//makeSphere(0,0,0,50);
-		//makeCylindricalActuator(0,0,0,25,5,5,40);
-		//makeSphericalActuator(0,0,0,20,5);
-		//makePneuflexActuator(0,0,0,10,14,10,5,10,5,2);
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
 
@@ -205,6 +199,57 @@ public class voxelTet : TetrahedronData
 	//
 	// Core Shape Library Alternate Mesh
 	//
+	private void makeGyroid2(int posX, int posY, int posZ, float width, float sensitivity, float tp)
+	{
+		for (int i = 0; i < (int)width; i++)
+		{
+			for (int j = (int)-0; j < width; j++)
+			{
+				for (int k = (int)-width/2; k < width/2; k++)
+				{
+					float gyroid = Mathf.Sin(i/tp)*Mathf.Cos(j/tp) + Mathf.Sin(j/tp)*Mathf.Cos(k/tp) + Mathf.Sin(k/tp)*Mathf.Cos(i/tp);
+					if(gyroid < sensitivity && gyroid > -sensitivity)
+					{
+						makeVoxel2(i+posX,j+posY,k+posZ);
+					}
+				}
+			}	
+		}
+	}
+
+	private void makeCylinder2(int posX, int posY, int posZ, float radius, float height)
+	{
+		for (int k = 0; k < height; k++)
+		{
+			for (int i = (int)-radius; i < radius; i++)
+			{
+				for (int j = (int)-radius; j < radius; j++)
+				{
+					if(Mathf.Sqrt(i*i+j*j)<radius)
+					{
+						makeVoxel2(i+posX,k+posY,j+posZ);
+					}
+				}
+			}	
+		}
+	}
+
+	private void makeTube2(int posX, int posY, int posZ, float outerRadius, float innerRadius, float height)
+	{
+		for (int k = 0; k < height; k++)
+		{
+			for (int i = (int)-outerRadius; i < outerRadius; i++)
+			{
+				for (int j = (int)-outerRadius; j < outerRadius; j++)
+				{
+					if(Mathf.Sqrt(i*i+j*j)<outerRadius && Mathf.Sqrt(i*i+j*j)>innerRadius)
+					{
+						makeVoxel2(i+posX,k+posY,j+posZ);
+					}
+				}
+			}	
+		}
+	}
 
 	private void makeCuboid2(int posX, int posY, int posZ, int length, int height, int width)
 	{
@@ -219,7 +264,26 @@ public class voxelTet : TetrahedronData
 			}
 		}
 	}
-	
+
+	//Currently gets messed up with environment collision
+	private void makeSphere2(int posX, int posY, int posZ, int radius)
+	{
+		for (int k = -radius; k < radius; k++)
+		{
+			for (int j = -radius; j < radius; j++)
+			{
+				for (int i = -radius; i < radius; i++)
+				{
+					float distVal = Mathf.Sqrt(i*i+j*j+k*k);
+					if (distVal < radius)
+					{
+						makeVoxel2(posX+i, posY+k, posZ+j);
+					}
+				}
+			}
+		}
+	}
+
 	//
 	// Voxel Generation
 	//
@@ -403,6 +467,11 @@ public class voxelTet : TetrahedronData
 		4,3,5, 4,7,3, 7,5,3, 4,5,7
 	};
 
+	public int[] vertexMap()
+		{
+			return vertexMapping;
+		}
+		
 	//This gives the first face that is intersected when moving in the direction from outside the voxel.
     public static int[] voxelNegativeX = new int[] {1, 6, 2, 5};
     public static int[] voxelPositiveX = new int[] {0, 7, 3, 4};
@@ -424,169 +493,4 @@ public class voxelTet : TetrahedronData
     public static int[] voxelBack = new int[] {3, 5, 2, 4};
     public static int[] voxelTop = new int[] {1, 5, 3, 7};
     public static int[] voxelBottom = new int[] {0, 4, 2, 6};
-
-	public int[] vertexMap()
-	{
-		return vertexMapping;
-	}
-
-	private void combineVoxelsLegacy() //Legacy code that has been superseeded by combineAndOptimiseVoxels()
-	{
-		for (int i = 0; i < vertsVoxelMesh.Length/3; i++)
-		{
-			for (int j = 0; j < vertsVoxelMesh.Length/3; j++)
-			{
-				if(vertsVoxelMesh[3*i]==vertsVoxelMesh[3*j] && vertsVoxelMesh[3*i+1]==vertsVoxelMesh[3*j+1] && vertsVoxelMesh[3*i+2]==vertsVoxelMesh[3*j+2] && i!=j)
-				{
-					connectionCount++;
-					
-					for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
-					{
-						if (tetEdgeIdsVoxelMesh[k] == j)
-						{
-							tetEdgeIdsVoxelMesh[k] = i;
-						}
-					}
-
-					for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
-					{
-						if (tetIdsVoxelMesh[l] == j)
-						{
-							tetIdsVoxelMesh[l] = i;
-						}
-					}
-
-					for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
-					{
-						if (tetSurfaceTriIdsVoxelMesh[m] == j)
-						{
-							tetSurfaceTriIdsVoxelMesh[m] = i;
-						}
-					}
-				}
-			}
-		}
-		//Debug.Log("CC = " + connectionCount);
-	}
-
-	private void combineVoxelsLegacy2()
-	{
-		HashSet<int> processedIndices = new HashSet<int>();
-		int numVertices = vertsVoxelMesh.Length / 3;
-		vertexMapping = new int[numVertices];
-
-		for (int v = 0; v < numVertices; v++)
-		{
-			vertexMapping[v] = v;
-		}
-
-		for (int i = 0; i < vertsVoxelMesh.Length / 3; i++)
-		{
-			if (processedIndices.Contains(i))
-			{
-				continue; // Skip already processed indices
-			}
-			int internalCount = 0;
-			Vector3 iPosition = new Vector3(vertsVoxelMesh[3 * i], vertsVoxelMesh[3 * i + 1], vertsVoxelMesh[3 * i + 2]);
-
-			for (int j = i + 1; j < vertsVoxelMesh.Length / 3; j++)
-			{
-				Vector3 jPosition = new Vector3(vertsVoxelMesh[3 * j], vertsVoxelMesh[3 * j + 1], vertsVoxelMesh[3 * j + 2]);
-				if (iPosition == jPosition)
-				{
-					processedIndices.Add(j);
-					connectionCount++;
-					internalCount++;
-
-					if(internalCount > 7)
-					{
-						internalCount = 0;
-						continue;
-					}
-					
-					for (int k = 0; k < tetEdgeIdsVoxelMesh.Length; k++)
-					{
-						if (tetEdgeIdsVoxelMesh[k] == j)
-						{
-							tetEdgeIdsVoxelMesh[k] = i;
-						}
-					}
-
-					for (int l = 0; l < tetIdsVoxelMesh.Length; l++)
-					{
-						if (tetIdsVoxelMesh[l] == j)
-						{
-							tetIdsVoxelMesh[l] = i;
-						}
-					}
-
-					for (int m = 0; m < tetSurfaceTriIdsVoxelMesh.Length; m++)
-					{
-						if (tetSurfaceTriIdsVoxelMesh[m] == j)
-						{
-							tetSurfaceTriIdsVoxelMesh[m] = i;
-						}
-					}
-					vertexMapping[j] = i;
-				}
-			}
-		}
-	}
-
-	private void combineVoxelsLegacyGPU()
-	{
-		int kernelIndex = combineVoxelsComputeShader.FindKernel("CSMain");
-		if (kernelIndex < 0)
-		{
-			Debug.LogError("Failed to find kernel 'CSMain'");
-			return;
-		}
-
-		int numVertices = vertsVoxelMesh.Length/3;
-		
-		// Create buffers
-		ComputeBuffer vertsVoxelMeshBuffer = new ComputeBuffer(numVertices, sizeof(float) * 3);
-		ComputeBuffer vertexMappingBuffer = new ComputeBuffer(numVertices, sizeof(int));
-		ComputeBuffer tetEdgeIdsVoxelMeshBuffer = new ComputeBuffer(tetEdgeIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer tetIdsVoxelMeshBuffer = new ComputeBuffer(tetIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer tetSurfaceTriIdsVoxelMeshBuffer = new ComputeBuffer(tetSurfaceTriIdsVoxelMesh.Length, sizeof(int));
-		ComputeBuffer processedIndicesBuffer = new ComputeBuffer(numVertices, sizeof(int));
-
-		// Set data to buffers
-		vertsVoxelMeshBuffer.SetData(vertsVoxelMesh);
-		vertexMappingBuffer.SetData(new int[numVertices]);
-		tetEdgeIdsVoxelMeshBuffer.SetData(tetEdgeIdsVoxelMesh);
-		tetIdsVoxelMeshBuffer.SetData(tetIdsVoxelMesh);
-		tetSurfaceTriIdsVoxelMeshBuffer.SetData(tetSurfaceTriIdsVoxelMesh);
-		processedIndicesBuffer.SetData(new int[numVertices]);
-
-		// Set buffers and constants to the compute shader
-		combineVoxelsComputeShader.SetBuffer(0, "vertsVoxelMesh", vertsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "vertexMapping", vertexMappingBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetEdgeIdsVoxelMesh", tetEdgeIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetIdsVoxelMesh", tetIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "tetSurfaceTriIdsVoxelMesh", tetSurfaceTriIdsVoxelMeshBuffer);
-		combineVoxelsComputeShader.SetBuffer(0, "processedIndices", processedIndicesBuffer);
-		combineVoxelsComputeShader.SetInt("bufferSize", numVertices); // Pass the buffer size as a constant
-
-		// Calculate the number of thread groups
-		int threadGroups = Mathf.CeilToInt(numVertices / 256.0f);
-
-		// Dispatch the compute shader
-		combineVoxelsComputeShader.Dispatch(0, threadGroups, 1, 1);
-
-		// Get the result back
-		int[] vertexMapping = new int[numVertices];
-		vertexMappingBuffer.GetData(vertexMapping);
-
-		// Cleanup
-		vertsVoxelMeshBuffer.Release();
-		vertexMappingBuffer.Release();
-		tetEdgeIdsVoxelMeshBuffer.Release();
-		tetIdsVoxelMeshBuffer.Release();
-		tetSurfaceTriIdsVoxelMeshBuffer.Release();
-		processedIndicesBuffer.Release();
-
-		// Use vertexMapping as needed
-	}
 }
