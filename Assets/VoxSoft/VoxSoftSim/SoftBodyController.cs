@@ -1,44 +1,46 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UserInteraction;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)
-//Based on https://matthias-research.github.io/pages/tenMinutePhysics/index.html
 public class SoftBodyController : MonoBehaviour
 {
     //Public
     public GameObject softBodyMeshPrefabGO;
-    
     public Texture2D cursorTexture;
+    public int numSubSteps;
 
-    public float volScale = 0;
+	//Soft body behavior settings
+	//Compliance (alpha) is the inverse of physical stiffness (k)
+	//alpha = 0 means infinitely stiff (hard)
+    public float edgeCompliance;
+	//Should be 0 or the mesh becomes very flat even for small values 
+    public float volCompliance;
+    public float dampingCoefficient;
 
+    public float pressure;
+    public float scale;
 
     //Private
     private readonly List<SoftBodySimulationVectors> allSoftBodies = new ();
-
     private int numberOfBodies = 1;
-
     private const int SEED = 0;
 
-    //What we use to grab the balls
+    //What we use to grab the particles
     private Grabber grabber;
-
     private bool simulate = true;
-
-    private readonly Color[] colors = new Color[] { Color.red, Color.blue, Color.green, Color.yellow, Color.cyan };
-
-    
+    private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
 
     private void Start()
     {
-        Random.InitState(SEED);
+        UnityEngine.Random.InitState(SEED);
         
-        TetrahedronData softBodyMesh = new voxelTet();
+        TetrahedronData softBodyMesh = new voxelTet(scale);
+        //TetrahedronData softBodyMesh = new tetGen(scale);
         //TetrahedronData softBodyMesh = new StanfordBunny();
-
 
         for (int i = 0; i < numberOfBodies; i++)
         {
@@ -46,29 +48,16 @@ public class SoftBodyController : MonoBehaviour
 
             MeshFilter meshFilter = meshI.GetComponent<MeshFilter>();
 
-
-            //Random pos
-            float halfPlayground = 5f;
-
-            float randomX = Random.Range(-halfPlayground, halfPlayground);
-            float randomZ = Random.Range(-halfPlayground, halfPlayground);
-
             Vector3 startPos = new Vector3(0f, 0f, 0f);
-
-
-            //Random scale
-            //float meshScale = Random.Range(2f, 5f);
-            float meshScale = 1f;
-
 
             //Random color
             MeshRenderer mr = meshI.GetComponent<MeshRenderer>();
 
             Material mat = mr.material;
 
-            mat.color = colors[Random.Range(0, colors.Length)];
+            mat.color = colors[0];
             
-            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, meshScale, volScale);
+            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
 
             allSoftBodies.Add(softBodySim);
         }
@@ -80,8 +69,6 @@ public class SoftBodyController : MonoBehaviour
 
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.ForceSoftware);
     }
-
-
 
     private void Update()
     {
@@ -99,8 +86,6 @@ public class SoftBodyController : MonoBehaviour
         }
     }
 
-
-
     private void LateUpdate()
     {
         if (Input.GetMouseButtonDown(0))
@@ -116,12 +101,9 @@ public class SoftBodyController : MonoBehaviour
         }
     }
 
-
-
     private void FixedUpdate()
     {
         //Timers.Reset();
-    
         if (!simulate)
         {
             return;
@@ -129,20 +111,17 @@ public class SoftBodyController : MonoBehaviour
 
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
-            softBody.MyFixedUpdate(volScale);
+            softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
         }
-
         //Timers.Display();
+       
     }
-
-
 
     private void OnDestroy()
     {
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
         {
             Mesh mesh = softBody.MyOnDestroy();
-
             Destroy(mesh);
         }
     }

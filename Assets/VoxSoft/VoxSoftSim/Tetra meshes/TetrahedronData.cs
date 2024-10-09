@@ -51,6 +51,12 @@ public abstract class TetrahedronData
         get;
     }
 
+    public abstract int[] GetVertexMapping
+    {
+        get;
+    }
+
+
     //
     // Data we can get based on the arrays
     //
@@ -64,5 +70,4 @@ public abstract class TetrahedronData
     //How many edges are there?
     //There are 2 vertices per edge, hence we have to divide by 2 to get how many edges we have
     public int GetNumberOfEdges => GetTetEdgeIds.Length / 2;
-
 }

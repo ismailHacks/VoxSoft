@@ -1,0 +1,79 @@
+#pragma kernel CSMain
+
+// Buffers to store data
+StructuredBuffer<float3> vertsVoxelMesh; // Vertex positions
+RWStructuredBuffer<int> vertexMapping; // Output mapping of vertices
+RWStructuredBuffer<int> tetEdgeIdsVoxelMeshGPU; 
+RWStructuredBuffer<int> tetIdsVoxelMeshGPU;
+RWStructuredBuffer<int> tetSurfaceTriIdsVoxelMeshGPU;
+RWStructuredBuffer<int> processedIndices; // To track processed vertices
+
+// Constant buffer size
+const int bufferSize;
+
+[numthreads(1, 1, 1)] // Define the number of threads per group
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x;
+
+    // Ensure we do not exceed the buffer size
+    if (i >= bufferSize) return;
+    
+    // Check if this index has already been processed
+    if (processedIndices[i] != 0)
+    {
+        return; // Skip already processed indices
+    }
+
+    float3 iPosition = vertsVoxelMesh[i];
+    int internalCount = 0;
+
+    for (int j = i + 1; j < bufferSize; j++)  // Use bufferSize instead of vertsVoxelMesh.Length
+    {
+        if (processedIndices[j] != 0)
+        {
+            continue; // Skip already processed indices
+        }
+
+        float3 jPosition = vertsVoxelMesh[j];
+        if (all(iPosition == jPosition))
+        {
+            // Mark the index as processed
+            processedIndices[j] = 1;
+
+            // Update the vertex mapping
+            vertexMapping[j] = i;
+
+            if(internalCount > 7)
+            {
+                internalCount = 0;
+                continue;
+            }
+
+            for (int k = 0; k < tetEdgeIdsVoxelMeshGPU.Length; k++)
+            {
+                if (tetEdgeIdsVoxelMeshGPU[k] == j)
+                {
+                    tetEdgeIdsVoxelMeshGPU[k] = i;
+                }
+            }
+
+            for (int l = 0; l < tetIdsVoxelMeshGPU.Length; l++)
+            {
+                if (tetIdsVoxelMeshGPU[l] == j)
+                {
+                    tetIdsVoxelMeshGPU[l] = i;
+                }
+            }
+
+            for (int m = 0; m < tetSurfaceTriIdsVoxelMeshGPU.Length; m++)
+            {
+                if (tetSurfaceTriIdsVoxelMeshGPU[m] == j)
+                {
+                    tetSurfaceTriIdsVoxelMeshGPU[m] = i;
+                }
+            }
+            internalCount++;
+        }
+    }
+}
