@@ -22,6 +22,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	public static int[] cubeFloorVoxels = new int[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
 	public static int[] cubeCompressionVoxels = new int[25];
 
+	public static int[] leftVoxels;
+
 
 
 	private readonly Vector3[] pos;
@@ -72,51 +74,68 @@ public class SoftBodySimulationVectors : IGrabbable
 	//For custom raycasting
 	public int[] GetMeshTriangles => tetraData.GetTetSurfaceTriIds;
 	public int GetGrabId => grabId;
+	Dictionary<string, List<int>> faceDirections;
+	private voxelTet myVoxelTet;
 
 
+	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale)
+    {
+        //Tetra data structures
+        this.tetraData = tetraData;
 
-	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos)
-	{
-		//Tetra data structures
-		this.tetraData = tetraData;
+        tetIds = tetraData.GetTetIds;
+        tetEdgeIds = tetraData.GetTetEdgeIds;
 
-		tetIds = tetraData.GetTetIds;
-		tetEdgeIds = tetraData.GetTetEdgeIds;
+        numParticles = tetraData.GetNumberOfVertices;
+        numTets = tetraData.GetNumberOfTetrahedrons;
+        numEdges = tetraData.GetNumberOfEdges;
 
-		numParticles = tetraData.GetNumberOfVertices;
-		numTets = tetraData.GetNumberOfTetrahedrons;
-		numEdges = tetraData.GetNumberOfEdges;
+        //Debug.Log(numParticles + "-" + numTets+ "-" + numEdges);
 
-		//Debug.Log(numParticles + "-" + numTets+ "-" + numEdges);
+        //Init the arrays 
+        //Has to be done in the constructor because readonly
+        pos = new Vector3[numParticles];
+        prevPos = new Vector3[numParticles];
+        vel = new Vector3[numParticles];
 
-		//Init the arrays 
-		//Has to be done in the constructor because readonly
-		pos = new Vector3[numParticles];
-		prevPos = new Vector3[numParticles];
-		vel = new Vector3[numParticles];
+        stabPos = new Vector3[numParticles];
+        stabPrevPos = new Vector3[numParticles];
+        stabVel = new Vector3[numParticles];
 
-		stabPos = new Vector3[numParticles];
-		stabPrevPos = new Vector3[numParticles];
-		stabVel = new Vector3[numParticles];
+        invMass = new float[numParticles];
 
-		invMass = new float[numParticles];
+        restVolumes = new float[numTets];
+        restEdgeLengths = new float[numEdges];
+        restEdgeLengthsOriginal = new float[numEdges];
 
-		restVolumes = new float[numTets];
-		restEdgeLengths = new float[numEdges];
-		restEdgeLengthsOriginal = new float[numEdges];
 
-		//Fill the arrays
-		FillArrays();
+        //Fill the arrays
+        FillArrays();
 
-		//Move the mesh to its start position
-		Translate(startPos);
+        //Move the mesh to its start position
+        Translate(startPos);
 
-		//Init the mesh
-		InitMesh(meshFilter, tetraData);
-	}
+        //Init the mesh
+        InitMesh(meshFilter, tetraData);
 
-	//Fill the data structures needed or soft body physics
-	private void FillArrays()
+        forcePoints(scale);
+    }
+
+    private void forcePoints(float scale)
+    {
+        myVoxelTet = new voxelTet(scale);
+
+       	faceDirections = myVoxelTet.faceDirectionToVoxelIDs;
+
+        foreach (var kvp in faceDirections)
+        {
+            //Debug.Log($"Face Direction: {kvp.Key}, Voxel IDs: {string.Join(", ", kvp.Value)}");
+        }
+		Debug.Log(faceDirections["Left"][0]);
+    }
+
+    //Fill the data structures needed or soft body physics
+    private void FillArrays()
 	{
 		//[x0, y0, z0, x1, y1, z1, ...]
 		float[] flatVerts = tetraData.GetVerts;
@@ -196,12 +215,9 @@ public class SoftBodySimulationVectors : IGrabbable
 
 		float dt = Time.fixedDeltaTime;
 
-		//ShrinkWalls(dt);
-		//convergenceSetup();
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-		//converged = convergenceDetect(sensitivity, dt);
-		//fitnessCalculate();
-		//Debug.Log(converged1);
+		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
+		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
 	}
 
 	public void MyUpdate()
@@ -286,6 +302,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		//SolveExternalVoxelPressureForce(dt, pressure);
 		//lockFaces(cubeFloorVoxels, voxelTet.voxelPositiveY);
 		//SolvePressureForce(dt, pressure, cubeCompressionVoxels, voxelTet.voxelNegativeY);
+
+		lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
+		SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
+		SolvePressureForce(dt, pressure, faceDirections["Top"].ToArray(), voxelTet.voxelPositiveY);
+		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
+		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
+		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);

@@ -57,7 +57,7 @@ public class SoftBodyController : MonoBehaviour
 
             mat.color = colors[0];
             
-            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
+            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, scale);
 
             allSoftBodies.Add(softBodySim);
         }

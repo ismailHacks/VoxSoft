@@ -36,26 +36,84 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
 
-	public ComputeShader combineVoxelsComputeShader;
+	bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
+	Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
+	public Dictionary<string, List<int>> faceDirectionToVoxelIDs;
 
 	public voxelTet(float scale)
 	{
-		combineVoxelsComputeShader = Resources.Load<ComputeShader>("CombineVoxelsGPU");
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		makeCuboid(0,0,0,cubicSize,cubicSize,cubicSize);
+		for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		{
+			for (int yPos = 0; yPos < cubicSize-3; yPos++)
+			{
+				for (int zPos = 0; zPos < cubicSize-3; zPos++)
+				{
+						voxelData[xPos, yPos, zPos] = true; // Filled
+				}
+			}
+		}
+
+		for (int xPos = 1; xPos < cubicSize - 4; xPos++)
+		{
+			for (int yPos = 1; yPos < cubicSize - 4; yPos++)
+			{
+				for (int zPos = 1; zPos < cubicSize - 4; zPos++)
+				{
+					voxelData[xPos, yPos, zPos] = false; // Empty inside
+				}
+			}
+		}
+
+		makeFreeActuator(voxelData);
+		
+		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
+    	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
+
+		/*foreach (var kvp in faceDirectionToVoxelIDs)
+		{
+			string faceDirection = kvp.Key;
+			List<int> voxelIDs = kvp.Value;
+
+			Debug.Log($"Face Direction: {faceDirection}");
+			Debug.Log($"Voxel IDs: {string.Join(", ", voxelIDs)}");
+		}*/
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
-
 		combineVoxels();
-
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
 	//
 	// Actuator Design Library
 	//
+	private void makeFreeActuator(bool[,,] voxelData)
+	{
+		int sizeX = voxelData.GetLength(0);
+    	int sizeY = voxelData.GetLength(1);
+    	int sizeZ = voxelData.GetLength(2);
+		int voxelID = 0;
+
+		for (int xPos = 0; xPos < sizeX; xPos++)
+		{
+			for (int yPos = 0; yPos < sizeY; yPos++)
+			{
+				for (int zPos = 0; zPos < sizeZ; zPos++)
+				{
+					if (voxelData[xPos, yPos, zPos])
+					{
+						makeVoxel(xPos, yPos, zPos);
+						Vector3Int position = new Vector3Int(xPos, yPos, zPos);
+                    	voxelPositionToID[position] = voxelID;
+
+                    	voxelID++;
+					}
+				}
+			}
+		}
+	}
 
 	private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
