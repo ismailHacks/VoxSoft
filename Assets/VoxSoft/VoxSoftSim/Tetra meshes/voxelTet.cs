@@ -18,7 +18,7 @@ public class voxelTet : TetrahedronData
 	//Have to make sure number of voxels is correct to what is actually created!
 	private static int cubicSize = 7;
 	//private static int noVoxels = cubicSize*cubicSize*cubicSize+cubicSize*2*cubicSize*2*cubicSize*2+cubicSize*5*cubicSize*5*cubicSize*5;
-	private static int noVoxels = cubicSize*cubicSize*cubicSize;
+	private static int noVoxels = 112;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -36,17 +36,22 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
 	private int voxelID = 0;
+	private int voxelID2 = 0;
 
 	bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
 	Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
 	public Dictionary<string, List<int>> faceDirectionToVoxelIDs;
+
+	bool[,,] voxelData2 = new bool[cubicSize, cubicSize, cubicSize];
+	Dictionary<Vector3Int, int> voxelPositionToID2 = new Dictionary<Vector3Int, int>();
+	public Dictionary<string, List<int>> faceDirectionToVoxelIDs2;
 
 	public voxelTet(float scale)
 	{
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		/*for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		for (int xPos = 0; xPos < cubicSize-3; xPos++)
 		{
 			for (int yPos = 0; yPos < cubicSize-3; yPos++)
 			{
@@ -66,14 +71,42 @@ public class voxelTet : TetrahedronData
 					voxelData[xPos, yPos, zPos] = false; // Empty inside
 				}
 			}
-		}*/
+		}
 
-		voxelData[0, 0, 0] = true;
+
+		for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		{
+			for (int yPos = 0; yPos < cubicSize-3; yPos++)
+			{
+				for (int zPos = 0; zPos < cubicSize-3; zPos++)
+				{
+						voxelData2[xPos, yPos, zPos] = true; // Filled
+				}
+			}
+		}
+
+		for (int xPos = 1; xPos < cubicSize - 4; xPos++)
+		{
+			for (int yPos = 1; yPos < cubicSize - 4; yPos++)
+			{
+				for (int zPos = 1; zPos < cubicSize - 4; zPos++)
+				{
+					voxelData2[xPos, yPos, zPos] = false; // Empty inside
+				}
+			}
+		}
+
+		//voxelData[0, 0, 0] = true;
+		//voxelData2[0, 0, 0] = true;
+
 
 		makeFreeActuator(voxelData);
+		makeFreeActuator2(voxelData2);
 
 		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
+		VoxelEnclosedSpaceDetector detector2 = new VoxelEnclosedSpaceDetector();
+    	faceDirectionToVoxelIDs2 = detector2.DetectEnclosedSpaces(voxelData2, voxelPositionToID2);
 
 		/*foreach (var kvp in faceDirectionToVoxelIDs)
 		{
@@ -110,6 +143,30 @@ public class voxelTet : TetrahedronData
 						Vector3Int position = new Vector3Int(xPos, yPos, zPos);
                     	voxelPositionToID[position] = voxelID;
                     	voxelID++;
+					}
+				}
+			}
+		}
+	}
+
+	private void makeFreeActuator2(bool[,,] voxelData2)
+	{
+		int sizeX = voxelData2.GetLength(0);
+    	int sizeY = voxelData2.GetLength(1);
+    	int sizeZ = voxelData2.GetLength(2);
+
+		for (int xPos = 0; xPos < sizeX; xPos++)
+		{
+			for (int yPos = 0; yPos < sizeY; yPos++)
+			{
+				for (int zPos = 0; zPos < sizeZ; zPos++)
+				{
+					if (voxelData2[xPos, yPos, zPos])
+					{
+						makeVoxel2(xPos, yPos, zPos);
+						Vector3Int position = new Vector3Int(xPos, yPos, zPos);
+                    	voxelPositionToID2[position] = voxelID2;
+                    	voxelID2++;
 					}
 				}
 			}
@@ -421,11 +478,11 @@ public class voxelTet : TetrahedronData
 					internalCount = 0;
 				}
 
-				if (internalCount >= 7)
+				/*if (internalCount >= 7)
 				{
 					// Skip mapping this duplicate
 					continue;
-				}
+				}*/
 
 				internalCount++;
 				positionInternalCount[iPosition] = internalCount;
@@ -482,13 +539,22 @@ public class voxelTet : TetrahedronData
 		0,1,3,7
 	};
 
-	private int[] tetIds2 =
+	private int[] tetIds3 =
 	{
 		4,7,6,5,
 		4,5,6,2,
 		7,6,5,1,
 		4,6,7,0,
 		4,7,5,3
+	};
+
+	private int[] tetIds2 =
+	{
+		1,0,3,2,
+		1,2,3,5,
+		0,3,2,4,
+		1,3,0,7,
+		1,0,2,6
 	};
 
 	//Provides the connections between each one of the edges in the tetrahedral voxel
@@ -502,13 +568,22 @@ public class voxelTet : TetrahedronData
 		0,7, 1,7, 3,7  //Outer Tetrahedron 4
 	};
 
-	private int[] tetEdgeIds2 =
+	private int[] tetEdgeIds3 =
 	{
 		4,7, 7,6, 6,4, 4,5, 7,5, 6,5,
 		4,2, 6,2, 5,2,
 		7,1, 6,1, 5,1,
 		4,0, 7,0, 6,0,
 		4,3, 7,3, 5,3
+	};
+
+	private int[] tetEdgeIds2 =
+	{
+		5,6, 6,7, 7,5, 5,4, 6,4, 7,4,
+		5,3, 7,3, 4,3,
+		6,0, 7,0, 4,0,
+		5,1, 6,1, 7,1,
+		5,2, 6,2, 4,2
 	};
 
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
@@ -520,12 +595,20 @@ public class voxelTet : TetrahedronData
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
 	};
 
-	private int[] tetSurfaceTriIds2 =
+	private int[] tetSurfaceTriIds3 =
 	{
 		4,5,2, 2,5,6, 4,2,6, 6,5,4,
 		6,5,1, 6,1,7, 5,7,1, 7,5,6,
 		4,0,7, 4,6,0, 7,0,6, 4,7,6,
 		4,3,5, 4,7,3, 7,5,3, 4,5,7
+	};
+
+	private int[] tetSurfaceTriIds2 =
+	{
+		5,4,3, 3,4,7, 5,3,7, 7,4,5,
+		7,4,0, 7,0,6, 4,6,0, 6,4,7,
+		5,1,6, 5,7,1, 6,1,7, 5,6,7,
+		5,2,4, 5,6,2, 6,4,2, 5,4,6
 	};
 
 	public int[] vertexMap()
@@ -541,12 +624,19 @@ public class voxelTet : TetrahedronData
     public static int[] voxelNegativeY = new int[] {1, 5, 3, 7};
     public static int[] voxelPositiveY = new int[] {0, 4, 2, 6};
 
-	public static int[] voxelNegativeX2 = new int[] {7, 0, 6, 1};
-    public static int[] voxelPositiveX2 = new int[] {4, 3, 5, 2};
-    public static int[] voxelNegativeZ2 = new int[] {7, 3, 4, 0};
-    public static int[] voxelPositiveZ2 = new int[] {5, 1, 6, 2};
-    public static int[] voxelNegativeY2 = new int[] {7, 1, 5, 3};
-    public static int[] voxelPositiveY2 = new int[] {4, 2, 6, 0};
+	public static int[] voxelNegativeX3 = new int[] {7, 0, 6, 1};
+    public static int[] voxelPositiveX3 = new int[] {4, 3, 5, 2};
+    public static int[] voxelNegativeZ3 = new int[] {7, 3, 4, 0};
+    public static int[] voxelPositiveZ3 = new int[] {5, 1, 6, 2};
+    public static int[] voxelNegativeY3 = new int[] {7, 1, 5, 3};
+    public static int[] voxelPositiveY3 = new int[] {4, 2, 6, 0};
+
+	public static int[] voxelNegativeX2 = new int[] {6, 1, 7, 0};
+	public static int[] voxelPositiveX2 = new int[] {5, 2, 4, 3};
+	public static int[] voxelNegativeZ2 = new int[] {6, 2, 5, 1};
+	public static int[] voxelPositiveZ2 = new int[] {4, 0, 7, 3};
+	public static int[] voxelNegativeY2 = new int[] {6, 0, 4, 2};
+	public static int[] voxelPositiveY2 = new int[] {5, 3, 7, 1};
 
     public static int[] voxelRight = new int[] {1, 6, 2, 5};
     public static int[] voxelLeft = new int[] {0, 7, 3, 4};
