@@ -35,6 +35,7 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetEdgeIds => tetEdgeIdsVoxelMesh;
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
+	private int voxelID = 0;
 
 	bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
 	Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
@@ -45,7 +46,7 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		/*for (int xPos = 0; xPos < cubicSize-3; xPos++)
 		{
 			for (int yPos = 0; yPos < cubicSize-3; yPos++)
 			{
@@ -65,10 +66,12 @@ public class voxelTet : TetrahedronData
 					voxelData[xPos, yPos, zPos] = false; // Empty inside
 				}
 			}
-		}
+		}*/
+
+		voxelData[0, 0, 0] = true;
 
 		makeFreeActuator(voxelData);
-		
+
 		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
 
@@ -94,7 +97,6 @@ public class voxelTet : TetrahedronData
 		int sizeX = voxelData.GetLength(0);
     	int sizeY = voxelData.GetLength(1);
     	int sizeZ = voxelData.GetLength(2);
-		int voxelID = 0;
 
 		for (int xPos = 0; xPos < sizeX; xPos++)
 		{
@@ -107,13 +109,14 @@ public class voxelTet : TetrahedronData
 						makeVoxel(xPos, yPos, zPos);
 						Vector3Int position = new Vector3Int(xPos, yPos, zPos);
                     	voxelPositionToID[position] = voxelID;
-
                     	voxelID++;
 					}
 				}
 			}
 		}
 	}
+
+
 
 	private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 

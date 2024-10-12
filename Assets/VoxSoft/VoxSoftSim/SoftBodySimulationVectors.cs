@@ -14,13 +14,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	private float sensitivity = 0.00001f;
-	private float startingVerticalDisplacement = 0.15f;
-	private float fitnessExponential = -10f;
 	public bool converged = false;
-
-	public static int[] cubeFloorVoxels = new int[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24};
-	public static int[] cubeCompressionVoxels = new int[25];
 
 	public static int[] leftVoxels;
 
@@ -58,25 +52,25 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//To pause the simulation
 	private bool simulate = true;
 	//Environment collision data 
 	private readonly float floorHeight = 0f;
-	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f); 
+	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f);
+	int[] lift ={0};
 
 	//Grabbing with mouse to move mesh around
 	//The id of the particle we grabed with mouse
 	private int grabId = -1;
-	//We grab a single particle and then we sit its inverted mass to 0. When we ungrab we have to reset its inverted mass to what itb was before 
+	//We grab a single particle and then we set its inverted mass to 0. When we ungrab we have to reset its inverted mass to what itb was before 
 	private float grabInvMass = 0f;
 	//For custom raycasting
 	public int[] GetMeshTriangles => tetraData.GetTetSurfaceTriIds;
 	public int GetGrabId => grabId;
 	Dictionary<string, List<int>> faceDirections;
 	private voxelTet myVoxelTet;
-
 
 	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale)
     {
@@ -118,7 +112,7 @@ public class SoftBodySimulationVectors : IGrabbable
         //Init the mesh
         InitMesh(meshFilter, tetraData);
 
-        forcePoints(scale);
+        //forcePoints(scale);
     }
 
     private void forcePoints(float scale)
@@ -187,11 +181,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		for (int i = 0; i < numParticles; i++)
 		{
 			invMass[i] = 1/pMass;
-		}
-
-		for (int i = 0; i < cubeFloorVoxels.Length; i++)
-		{
-			cubeCompressionVoxels[i] = cubeFloorVoxels[i]+100;
 		}
 		
 		
@@ -298,18 +287,14 @@ public class SoftBodySimulationVectors : IGrabbable
 		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
 		//- Compliance (inverse stiffness): alpha
 
-		//SolvePressureForce(dt, pressure, voxEnd, voxelTet.voxelTop);
-		//SolveExternalVoxelPressureForce(dt, pressure);
-		//lockFaces(cubeFloorVoxels, voxelTet.voxelPositiveY);
-		//SolvePressureForce(dt, pressure, cubeCompressionVoxels, voxelTet.voxelNegativeY);
-
-		lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
-		SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
+		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
+		/*SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
 		SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
 		SolvePressureForce(dt, pressure, faceDirections["Top"].ToArray(), voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
-		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
+		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
+		SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveZ);
 
 		forceMove(dt, dampingCoefficient);
 		SolveEdges(dt, edgeCompliance);
@@ -608,9 +593,9 @@ public class SoftBodySimulationVectors : IGrabbable
                 Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
 
 				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
-				Debug.DrawRay(pos[id1], -normal, Color.blue);
-				Debug.DrawRay(pos[id2], -normal, Color.blue);
-				Debug.DrawRay(pos[id3], -normal, Color.blue);*/
+				Debug.DrawRay(pos[id1], -crossF1.normalized, Color.green);
+				Debug.DrawRay(pos[id2], -normal, Color.yellow);
+				Debug.DrawRay(pos[id3], crossF2.normalized, Color.red);*/
 
                 float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
 
@@ -621,15 +606,15 @@ public class SoftBodySimulationVectors : IGrabbable
                 }
                 if (invMass[id1] != 0)
                 {
-                    vel[id1] += (pressureForce * invMass[id1]) * normal * dt;
+                    vel[id1] += (pressureForce * invMass[id1]) * crossF1 * dt;
                 }
                 if (invMass[id2] != 0)
                 {
                     vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
                 }
-				if (invMass[id2] != 0)
+				if (invMass[id3] != 0)
                 {
-                    vel[id3] += (pressureForce * invMass[id2]) * normal * dt;
+                    vel[id3] += (pressureForce * invMass[id2]) * -crossF2 * dt;
                 }
             }
         }
