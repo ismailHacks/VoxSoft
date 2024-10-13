@@ -258,9 +258,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		for (int step = 0; step < numSubSteps; step++)
 		{	
 			PreSolve(sdt, gravity);
-			SolveConstraints(sdt, edgeCompliance, volCompliance, dampingCoefficient, pressure);
+			SolveConstraints(sdt, edgeCompliance, volCompliance, pressure);
 			HandleEnvironmentCollision();
-			PostSolve(sdt);
+			PostSolve(sdt, dampingCoefficient);
 		}
 		//debugLog();
 	}
@@ -282,7 +282,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Handle the soft body physics
-	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float dampingCoefficient, float pressure)
+	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float pressure)
 	{
 		//Constraints
 		//Enforce constraints by moving each vertex: x = x + deltaX
@@ -295,29 +295,31 @@ public class SoftBodySimulationVectors : IGrabbable
 		//- Compliance (inverse stiffness): alpha
 
 		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
-		SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
+		/*SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
 		SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
 		SolvePressureForce(dt, pressure, faceDirections["Top"].ToArray(), voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
-		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
+		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
 
-		SolvePressureForce2(dt, pressure, faceDirections2["Right"].ToArray(), voxelTet.voxelPositiveX);
+		/*SolvePressureForce2(dt, pressure, faceDirections2["Right"].ToArray(), voxelTet.voxelPositiveX);
 		SolvePressureForce2(dt, pressure, faceDirections2["Left"].ToArray(), voxelTet.voxelNegativeX);
 		SolvePressureForce2(dt, pressure, faceDirections2["Top"].ToArray(), voxelTet.voxelPositiveY);
 		SolvePressureForce2(dt, pressure, faceDirections2["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce2(dt, pressure, faceDirections2["Front"].ToArray(), voxelTet.voxelPositiveZ);
-		SolvePressureForce2(dt, pressure, faceDirections2["Back"].ToArray(), voxelTet.voxelNegativeZ);
+		SolvePressureForce2(dt, pressure, faceDirections2["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
 		
-		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeY);
+		SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeY);
 		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeY);
 
 		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveY);
 		//SolvePressureForce2(dt, pressure, lift2, voxelTet.voxelNegativeY);
 
-		forceMove(dt, dampingCoefficient);
+		forceMove(dt);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
+
+		//EnforceAngularMomentumConservation(dt, edgeCompliance, volCompliance);
 	}
 
 	//Solve distance constraint
@@ -434,6 +436,66 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	// Place this function in your class
+	private void EnforceAngularMomentumConservation(float dt, float edgeCompliance, float volCompliance)
+	{
+		// Arrays to store original positions and corrections
+		Vector3[] posOld = new Vector3[numParticles];
+		Vector3[] deltaX = new Vector3[numParticles];
+		float[] mass = new float[numParticles];
+
+		// Store original positions and compute masses
+		for (int i = 0; i < numParticles; i++)
+		{
+			posOld[i] = pos[i];
+			mass[i] = invMass[i] == 0f ? 0f : 1f / invMass[i];
+		}
+		
+		SolveEdges(dt, edgeCompliance);
+		SolveVolumes(dt, volCompliance);
+
+		// After solving constraints, compute corrections
+		for (int i = 0; i < numParticles; i++)
+		{
+			deltaX[i] = pos[i] - posOld[i];
+		}
+
+		// Compute total change in angular momentum
+		Vector3 deltaL = Vector3.zero;
+		for (int i = 0; i < numParticles; i++)
+		{
+			deltaL += mass[i] * Vector3.Cross(posOld[i], deltaX[i]);
+		}
+
+		// Compute inertia tensor
+		Matrix3x3 inertiaTensor = new Matrix3x3();
+		for (int i = 0; i < numParticles; i++)
+		{
+			Vector3 r = posOld[i];
+			float m = mass[i];
+
+			// Inertia tensor contribution from particle i
+			float rDotR = Vector3.Dot(r, r);
+			Matrix3x3 identity = Matrix3x3.Identity();
+			Matrix3x3 outerProduct = Matrix3x3.OuterProduct(r, r);
+
+			Matrix3x3 inertiaContribution = (identity * rDotR - outerProduct) * m;
+			inertiaTensor += inertiaContribution;
+		}
+
+		// Invert inertia tensor
+		Matrix3x3 inertiaTensorInv = inertiaTensor.Inverse();
+
+		// Compute angular velocity correction
+		Vector3 omega = inertiaTensorInv * deltaL;
+
+		// Adjust particle positions
+		for (int i = 0; i < numParticles; i++)
+		{
+			Vector3 correction = Vector3.Cross(omega, posOld[i]);
+			pos[i] = posOld[i] + deltaX[i] - correction;
+		}
+	}
 	//Used to lock specific faces in space.
 	private void lockFaces(int[] voxIDs, int[] face)
 	{
@@ -454,22 +516,21 @@ public class SoftBodySimulationVectors : IGrabbable
 
 	//Damping coefficient currently implemented incorrectly - as it damps gravity as well. Just here for simulation stability
 	//When dynamic effects are being looked at this will need to be correct.
-    private void forceMove(float dt, float dampingCoefficient)
+    private void forceMove(float dt)
     {
         // Update positions based on velocity
         for (int i = 0; i < numParticles; i++)
         {
             if (invMass[i] != 0)
             {
-                pos[i] += vel[i]* dampingCoefficient * dt;
-                //pos[i] += vel[i] * dt;
+                pos[i] += vel[i] * dt;
             }
         }
 		//Debug.DrawRay(pos[10], gravity, Color.blue);
     }
 
 	//Update the velocity after the constrain has been handled
-	private void PostSolve(float dt)
+	private void PostSolve(float dt, float dampingCoefficient)
 	{
 		float oneOverdt = 1f / dt;
 	
@@ -482,7 +543,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			}
 
 			//v = (x - xPrev) / dt
-			vel[i] = (pos[i] - prevPos[i]) * oneOverdt;
+			vel[i] = (pos[i] - prevPos[i]) * dampingCoefficient * oneOverdt;
 		}
 	}
 	
@@ -701,10 +762,10 @@ public class SoftBodySimulationVectors : IGrabbable
 				Debug.DrawRay(pos[id2], crossF2.normalized, Color.magenta);
 				Debug.DrawRay(pos[id3], -normal, Color.white);*/
 
-				Debug.DrawRay(pos[id0], -normal, Color.cyan);
+				/*Debug.DrawRay(pos[id0], -normal, Color.cyan);
 				Debug.DrawRay(pos[id1], -normal, Color.grey);
 				Debug.DrawRay(pos[id2], -normal, Color.magenta);
-				Debug.DrawRay(pos[id3], -normal, Color.white);
+				Debug.DrawRay(pos[id3], -normal, Color.white);*/
 
                 float pressureForce = (pressure * faceAreaF1)/2f;
                 float pressureForce2 = (pressure * faceAreaF2)/2f;
@@ -973,5 +1034,117 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		return pos[grabId];
     }
+
+	public class Matrix3x3
+	{
+		private float[,] m = new float[3, 3];
+
+		// Constructor initializes to zero matrix
+		public Matrix3x3()
+		{
+			SetZero();
+		}
+
+		public void SetZero()
+		{
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					m[i, j] = 0f;
+		}
+
+		public static Matrix3x3 Identity()
+		{
+			Matrix3x3 mat = new Matrix3x3();
+			mat.m[0, 0] = mat.m[1, 1] = mat.m[2, 2] = 1f;
+			return mat;
+		}
+		
+		public static Matrix3x3 operator -(Matrix3x3 a, Matrix3x3 b)
+		{
+			Matrix3x3 result = new Matrix3x3();
+			for (int i = 0; i < 3; i++)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					result.m[i, j] = a.m[i, j] - b.m[i, j];
+				}
+			}
+			return result;
+		}
+
+		public static Matrix3x3 operator +(Matrix3x3 a, Matrix3x3 b)
+		{
+			Matrix3x3 result = new Matrix3x3();
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					result.m[i, j] = a.m[i, j] + b.m[i, j];
+			return result;
+		}
+
+		public static Matrix3x3 operator *(Matrix3x3 a, float scalar)
+		{
+			Matrix3x3 result = new Matrix3x3();
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					result.m[i, j] = a.m[i, j] * scalar;
+			return result;
+		}
+
+		public static Matrix3x3 OuterProduct(Vector3 a, Vector3 b)
+		{
+			Matrix3x3 result = new Matrix3x3();
+			result.m[0, 0] = a.x * b.x;
+			result.m[0, 1] = a.x * b.y;
+			result.m[0, 2] = a.x * b.z;
+			result.m[1, 0] = a.y * b.x;
+			result.m[1, 1] = a.y * b.y;
+			result.m[1, 2] = a.y * b.z;
+			result.m[2, 0] = a.z * b.x;
+			result.m[2, 1] = a.z * b.y;
+			result.m[2, 2] = a.z * b.z;
+			return result;
+		}
+
+		public Matrix3x3 Inverse()
+		{
+			// Compute the determinant
+			float det = m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1])
+					- m[0, 1] * (m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0])
+					+ m[0, 2] * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0]);
+
+			if (Mathf.Abs(det) < 1e-6f)
+			{
+				// Matrix is singular and cannot be inverted
+				return Identity();
+			}
+
+			float invDet = 1.0f / det;
+
+			Matrix3x3 inv = new Matrix3x3();
+
+			inv.m[0, 0] = invDet * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]);
+			inv.m[0, 1] = invDet * (m[0, 2] * m[2, 1] - m[0, 1] * m[2, 2]);
+			inv.m[0, 2] = invDet * (m[0, 1] * m[1, 2] - m[0, 2] * m[1, 1]);
+
+			inv.m[1, 0] = invDet * (m[1, 2] * m[2, 0] - m[1, 0] * m[2, 2]);
+			inv.m[1, 1] = invDet * (m[0, 0] * m[2, 2] - m[0, 2] * m[2, 0]);
+			inv.m[1, 2] = invDet * (m[0, 2] * m[1, 0] - m[0, 0] * m[1, 2]);
+
+			inv.m[2, 0] = invDet * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0]);
+			inv.m[2, 1] = invDet * (m[0, 1] * m[2, 0] - m[0, 0] * m[2, 1]);
+			inv.m[2, 2] = invDet * (m[0, 0] * m[1, 1] - m[0, 1] * m[1, 0]);
+
+			return inv;
+		}
+
+		public static Vector3 operator *(Matrix3x3 a, Vector3 v)
+		{
+			Vector3 result = new Vector3();
+			result.x = a.m[0, 0] * v.x + a.m[0, 1] * v.y + a.m[0, 2] * v.z;
+			result.y = a.m[1, 0] * v.x + a.m[1, 1] * v.y + a.m[1, 2] * v.z;
+			result.z = a.m[2, 0] * v.x + a.m[2, 1] * v.y + a.m[2, 2] * v.z;
+			return result;
+		}
+	}
 }
 

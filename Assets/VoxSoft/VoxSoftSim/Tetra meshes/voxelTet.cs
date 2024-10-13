@@ -16,9 +16,9 @@ using System.Linq; // Add this to use the Sum() method
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int cubicSize = 7;
+	private static int cubicSize = 10;
 	//private static int noVoxels = cubicSize*cubicSize*cubicSize+cubicSize*2*cubicSize*2*cubicSize*2+cubicSize*5*cubicSize*5*cubicSize*5;
-	private static int noVoxels = 112;
+	private static int noVoxels = 218;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -51,7 +51,7 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		/*for (int xPos = 0; xPos < cubicSize-3; xPos++)
 		{
 			for (int yPos = 0; yPos < cubicSize-3; yPos++)
 			{
@@ -71,10 +71,10 @@ public class voxelTet : TetrahedronData
 					voxelData[xPos, yPos, zPos] = false; // Empty inside
 				}
 			}
-		}
+		}*/
 
 
-		for (int xPos = 0; xPos < cubicSize-3; xPos++)
+		/*for (int xPos = 0; xPos < cubicSize-3; xPos++)
 		{
 			for (int yPos = 0; yPos < cubicSize-3; yPos++)
 			{
@@ -94,14 +94,14 @@ public class voxelTet : TetrahedronData
 					voxelData2[xPos, yPos, zPos] = false; // Empty inside
 				}
 			}
-		}
+		}*/
 
-		//voxelData[0, 0, 0] = true;
+		voxelData[0, 0, 0] = true;
 		//voxelData2[0, 0, 0] = true;
 
 
 		makeFreeActuator(voxelData);
-		makeFreeActuator2(voxelData2);
+		//makeFreeActuator2(voxelData2);
 
 		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
