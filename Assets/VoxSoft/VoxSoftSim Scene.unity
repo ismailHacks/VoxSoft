@@ -540,10 +540,10 @@ MonoBehaviour:
   softBodyMeshPrefabGO: {fileID: 2855842333996432679, guid: 48e11e5925bedb74c92b70ca0bc8b7a4,
     type: 3}
   cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
-  numSubSteps: 15
-  edgeCompliance: 0.3
-  volCompliance: 0.027
-  dampingCoefficient: 0.9
+  numSubSteps: 200
+  edgeCompliance: 0.1
+  volCompliance: 0
+  dampingCoefficient: 0.999
   pressure: 0
   scale: 0.005
 --- !u!1660057539 &9223372036854775807
