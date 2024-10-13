@@ -52,8 +52,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int numEdges;
 
 	//Simulation settings
-	private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
-	//private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
+	//private readonly Vector3 gravity = new Vector3(0f, -9.81f, 0f);
+	private readonly Vector3 gravity = new Vector3(0f, 0f, 0f);
 	//To pause the simulation
 	private bool simulate = true;
 	//Environment collision data 
@@ -309,17 +309,17 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce2(dt, pressure, faceDirections2["Front"].ToArray(), voxelTet.voxelPositiveZ);
 		SolvePressureForce2(dt, pressure, faceDirections2["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
 		
-		SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeY);
-		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeY);
+		SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeX);
+		SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveX);
 
 		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveY);
 		//SolvePressureForce2(dt, pressure, lift2, voxelTet.voxelNegativeY);
 
 		forceMove(dt);
-		SolveEdges(dt, edgeCompliance);
-		SolveVolumes(dt, volCompliance);
+		//SolveEdges(dt, edgeCompliance);
+		//SolveVolumes(dt, volCompliance);
 
-		//EnforceAngularMomentumConservation(dt, edgeCompliance, volCompliance);
+		EnforceAngularMomentumConservation(dt, edgeCompliance, volCompliance);
 	}
 
 	//Solve distance constraint
@@ -675,10 +675,10 @@ public class SoftBodySimulationVectors : IGrabbable
 
                 Vector3 normal = (crossF1.normalized+crossF2.normalized).normalized;
 
-				/*Debug.DrawRay(pos[id0], -crossF2.normalized, Color.blue);
+				Debug.DrawRay(pos[id0], -crossF2.normalized, Color.blue);
 				Debug.DrawRay(pos[id1], -crossF1.normalized, Color.green);
 				Debug.DrawRay(pos[id2], -crossF1.normalized, Color.yellow);
-				Debug.DrawRay(pos[id3], -crossF2.normalized, Color.red);*/
+				Debug.DrawRay(pos[id3], -crossF2.normalized, Color.red);
 
 
 				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
@@ -689,7 +689,7 @@ public class SoftBodySimulationVectors : IGrabbable
                 float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
 
                 // Apply pressure force to each vertex of the face
-                /*if (invMass[id0] != 0)
+                if (invMass[id0] != 0)
                 {
                     vel[id0] += (pressureForce * invMass[id0]) * crossF2.normalized * dt;
                 }
@@ -704,10 +704,10 @@ public class SoftBodySimulationVectors : IGrabbable
 				if (invMass[id3] != 0)
                 {
                     vel[id3] += (pressureForce * invMass[id2]) * crossF2.normalized * dt;
-                }*/
+                }
 
 
-				if (invMass[id0] != 0)
+				/*if (invMass[id0] != 0)
                 {
                     vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
                 }
@@ -722,7 +722,7 @@ public class SoftBodySimulationVectors : IGrabbable
 				if (invMass[id3] != 0)
                 {
                     vel[id3] += (pressureForce * invMass[id2]) * normal * dt;
-                }
+                }*/
             }
         }
     }

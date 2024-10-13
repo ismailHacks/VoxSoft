@@ -541,8 +541,8 @@ MonoBehaviour:
     type: 3}
   cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
   numSubSteps: 15
-  edgeCompliance: 0
-  volCompliance: 0
+  edgeCompliance: 0.3
+  volCompliance: 0.027
   dampingCoefficient: 0.9
   pressure: 0
   scale: 0.005
