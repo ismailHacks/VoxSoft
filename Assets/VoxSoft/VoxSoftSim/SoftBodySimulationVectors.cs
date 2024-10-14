@@ -6,7 +6,6 @@ using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.Mathematics;
 
 
 //Same as SoftBodySimulation but is using Vector3 instead of arrays where an index in the array is x, y, or z 
@@ -18,11 +17,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
-	public bool converged = false;
-
-	public static int[] leftVoxels;
-
-
 
 	private readonly Vector3[] pos;
 	private readonly Vector3[] prevPos;
@@ -64,7 +58,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float floorHeight = 0f;
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f);
 	int[] lift ={0};
-	int[] lift2 ={1};
 
 	//Grabbing with mouse to move mesh around
 	//The id of the particle we grabed with mouse
@@ -77,9 +70,6 @@ public class SoftBodySimulationVectors : IGrabbable
 
 	Dictionary<string, List<int>> faceDirections;
 	private voxelTet myVoxelTet;
-
-	Dictionary<string, List<int>> faceDirections2;
-	private voxelTet myVoxelTet2;
 
 	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale)
     {
@@ -121,22 +111,14 @@ public class SoftBodySimulationVectors : IGrabbable
         //Init the mesh
         InitMesh(meshFilter, tetraData);
 
-        forcePoints(scale);
+		//Initiallising the pressure points
+        pressurePoints(scale);
     }
 
-    private void forcePoints(float scale)
+    private void pressurePoints(float scale)
     {
         myVoxelTet = new voxelTet(scale);
        	faceDirections = myVoxelTet.faceDirectionToVoxelIDs;
-
-		myVoxelTet2 = new voxelTet(scale);
-       	faceDirections2 = myVoxelTet2.faceDirectionToVoxelIDs2;
-
-        /*foreach (var kvp in faceDirections)
-        {
-            Debug.Log($"Face Direction: {kvp.Key}, Voxel IDs: {string.Join(", ", kvp.Value)}");
-        }
-		Debug.Log(faceDirections["Left"][0]);*/
     }
 
     //Fill the data structures needed or soft body physics
@@ -305,19 +287,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
 		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
-
-		/*SolvePressureForce2(dt, pressure, faceDirections2["Right"].ToArray(), voxelTet.voxelPositiveX);
-		SolvePressureForce2(dt, pressure, faceDirections2["Left"].ToArray(), voxelTet.voxelNegativeX);
-		SolvePressureForce2(dt, pressure, faceDirections2["Top"].ToArray(), voxelTet.voxelPositiveY);
-		SolvePressureForce2(dt, pressure, faceDirections2["Bottom"].ToArray(), voxelTet.voxelNegativeY);
-		SolvePressureForce2(dt, pressure, faceDirections2["Front"].ToArray(), voxelTet.voxelPositiveZ);
-		SolvePressureForce2(dt, pressure, faceDirections2["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
 		
 		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeX);
-		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveX);
-
-		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelPositiveY);
-		//SolvePressureForce2(dt, pressure, lift2, voxelTet.voxelNegativeY);
 
 		forceMove(dt);
 		SolveEdges(dt, edgeCompliance);
@@ -440,75 +411,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	// Usage
-	void SolveVolumesBurst(float dt, float volumeCompliance)
-	{
-		// Convert your existing arrays to NativeArrays as before
-		NativeArray<int> tetIdsNative = new NativeArray<int>(tetIds, Allocator.TempJob);
-		NativeArray<float3> posNative = new NativeArray<float3>(pos.Length, Allocator.TempJob);
-		NativeArray<float> invMassNative = new NativeArray<float>(invMass, Allocator.TempJob);
-		NativeArray<float> restVolumesNative = new NativeArray<float>(restVolumes, Allocator.TempJob);
-		NativeArray<int3> volIdOrderNative = new NativeArray<int3>(4, Allocator.TempJob); // Adjust size as needed
-
-		// Convert pos from Vector3[] to float3[]
-		for (int i = 0; i < pos.Length; i++)
-		{
-			posNative[i] = pos[i];
-		}
-
-		// Initialize volIdOrderNative
-		for (int i = 0; i < 4; i++)
-		{
-			volIdOrderNative[i] = new int3(
-				TetrahedronData.volIdOrder[i][0],
-				TetrahedronData.volIdOrder[i][1],
-				TetrahedronData.volIdOrder[i][2]);
-		}
-
-		// Create a NativeStream to hold position deltas
-		NativeStream posDeltasStream = new NativeStream(numTets, Allocator.TempJob);
-
-		var job = new SolveVolumesJob
-		{
-			dt = dt,
-			volumeCompliance = volumeCompliance,
-			tetIds = tetIdsNative,
-			pos = posNative,
-			invMass = invMassNative,
-			restVolumes = restVolumesNative,
-			volIdOrder = volIdOrderNative,
-			posDeltaWriter = posDeltasStream.AsWriter()
-		};
-
-		// Schedule the job
-		JobHandle handle = job.Schedule(numTets, 256);
-		handle.Complete();
-
-		// Apply the position deltas
-		var applyDeltasJob = new ApplyPositionDeltasJob
-		{
-			posDeltaReader = posDeltasStream.AsReader(),
-			pos = posNative
-		};
-
-		handle = applyDeltasJob.Schedule();
-		handle.Complete();
-
-		// Copy back the updated positions
-		for (int i = 0; i < pos.Length; i++)
-		{
-			pos[i] = (Vector3)posNative[i];
-		}
-
-		// Dispose of NativeArrays and NativeStream
-		tetIdsNative.Dispose();
-		posNative.Dispose();
-		invMassNative.Dispose();
-		restVolumesNative.Dispose();
-		volIdOrderNative.Dispose();
-		posDeltasStream.Dispose();
-	}
-
 	// Place this function in your class
 	private void EnforceAngularMomentumConservation(float dt, float edgeCompliance, float volCompliance)
 	{
@@ -569,6 +471,7 @@ public class SoftBodySimulationVectors : IGrabbable
 			pos[i] = posOld[i] + deltaX[i] - correction;
 		}
 	}
+	
 	//Used to lock specific faces in space.
 	private void lockFaces(int[] voxIDs, int[] face)
 	{
@@ -677,7 +580,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 	
 	//Integrates a pressure force on all tetrahedron surfaces
-	//TODO - Pressure force flips due to inversion of the Normal direction, there needs to be a catch for this.
 	private void SolveExternalVoxelPressureForce(float dt, float pressure)
 	{
 		for (int i = 0; i < numTets; i++)
@@ -799,71 +701,6 @@ public class SoftBodySimulationVectors : IGrabbable
             }
         }
     }
-
-	private void SolvePressureForce2(float dt, float pressure, int[] voxIDs, int[] face)
-    {
-        for (int i = 0; i < voxIDs.Length; i++)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                // The id's of all particles on the face
-				int[] vertexMapping = tetraData.GetVertexMapping;
-
-				int id0 = vertexMapping[8 * voxIDs[i] + face[0]];
-                int id1 = vertexMapping[8 * voxIDs[i] + face[1]];
-                int id2 = vertexMapping[8 * voxIDs[i] + face[2]];
-                int id3 = vertexMapping[8 * voxIDs[i] + face[3]];
-
-				//Something about this does not work for all faces due to the way in which the triangles are formed.
-                Vector3 id0_minus_id1 = pos[id0] - pos[id1];
-                Vector3 id2_minus_id1 = pos[id2] - pos[id1];
-
-				Vector3 id0_minus_id3 = pos[id0] - pos[id3];
-				Vector3 id2_minus_id3 = pos[id2] - pos[id3];
-
-
-                Vector3 crossF1 = Vector3.Cross(id0_minus_id1, id2_minus_id1);
-                Vector3 crossF2 = Vector3.Cross(id0_minus_id3, id2_minus_id3);
-
-                float faceAreaF1 = crossF1.magnitude * 0.5f;
-                float faceAreaF2 = crossF2.magnitude * 0.5f;
-
-                Vector3 normal = (crossF1.normalized-crossF2.normalized).normalized;
-
-				/*Debug.DrawRay(pos[id0], -crossF1.normalized, Color.cyan);
-				Debug.DrawRay(pos[id1], -normal, Color.grey);
-				Debug.DrawRay(pos[id2], crossF2.normalized, Color.magenta);
-				Debug.DrawRay(pos[id3], -normal, Color.white);*/
-
-				/*Debug.DrawRay(pos[id0], -normal, Color.cyan);
-				Debug.DrawRay(pos[id1], -normal, Color.grey);
-				Debug.DrawRay(pos[id2], -normal, Color.magenta);
-				Debug.DrawRay(pos[id3], -normal, Color.white);*/
-
-                float pressureForce = (pressure * faceAreaF1)/2f;
-                float pressureForce2 = (pressure * faceAreaF2)/2f;
-
-
-                // Apply pressure force to each vertex of the face
-                if (invMass[id0] != 0)
-                {
-                    vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
-                }
-                if (invMass[id1] != 0)
-                {
-                    vel[id1] += (pressureForce * invMass[id1]) * normal * dt; //Normal
-                }
-                if (invMass[id2] != 0)
-                {
-                    vel[id2] += (pressureForce2 * invMass[id2]) * normal * dt;
-                }
-				if (invMass[id3] != 0)
-                {
-                    vel[id3] += (pressureForce2 * invMass[id2]) * normal * dt; //Normal
-                }
-            }
-        }
-    }
 	
 	//
 	// Unity mesh 
@@ -926,79 +763,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		float volume = Tetrahedron.Volume(a, b, c, d);
 
 		return volume;
-	}
-
-	
-	private void debugLog()
-	{
-		//To calculate simulated displacement.
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
-
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[5]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[6]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[7]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].x));*/
-
-		//To calculate difference between real and simulated beam.
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement - beamLowerDisplacementReal[0])
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement - beamLowerDisplacementReal[1])
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement - beamLowerDisplacementReal[2])
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement - beamLowerDisplacementReal[3])
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement - beamLowerDisplacementReal[4])
-		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement - beamLowerDisplacementReal[5])
-		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement - beamLowerDisplacementReal[6])
-		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement - beamLowerDisplacementReal[7])
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement - beamLowerDisplacementReal[8]));*/
-
-
-		/*Debug.DrawRay(pos[cubeCompressionVoxels[0]*8], gravity, Color.yellow);
-		Debug.DrawRay(pos[cubeCompressionVoxels[1]*8], gravity, Color.green);
-		Debug.DrawRay(pos[cubeCompressionVoxels[2]*8], gravity, Color.blue);
-		Debug.DrawRay(pos[cubeCompressionVoxels[3]*8], gravity, Color.red);
-		Debug.DrawRay(pos[cubeCompressionVoxels[4]*8], gravity, Color.cyan);
-		Debug.DrawRay(pos[cubeCompressionVoxels[23]*8], gravity, Color.gray);*/
-
-
-		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[5]], gravity, Color.gray);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[6]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[7]], gravity, Color.cyan);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[8]], gravity, Color.red);*/
-
-		/*Debug.DrawRay(pos[beamLowerDisplacementPoss[0]], gravity, Color.yellow);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[1]], gravity, Color.green);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[2]], gravity, Color.red);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[3]], gravity, Color.blue);
-		Debug.DrawRay(pos[beamLowerDisplacementPoss[4]], gravity, Color.cyan);*/
-
-		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].y - startingVerticalDisplacement));*/
-
-		/*Debug.Log("disps = " + (pos[cube[0]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[2]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[3]].x)
-		+ " | " + (pos[beamLowerDisplacementPoss[4]].x));*/
 	}
 
 	//
@@ -1324,6 +1088,75 @@ public class SoftBodySimulationVectors : IGrabbable
 				posDeltaReader.EndForEachIndex();
 			}
 		}
+	}
+
+	// Usage
+	void SolveVolumesBurst(float dt, float volumeCompliance)
+	{
+		// Convert your existing arrays to NativeArrays as before
+		NativeArray<int> tetIdsNative = new NativeArray<int>(tetIds, Allocator.TempJob);
+		NativeArray<float3> posNative = new NativeArray<float3>(pos.Length, Allocator.TempJob);
+		NativeArray<float> invMassNative = new NativeArray<float>(invMass, Allocator.TempJob);
+		NativeArray<float> restVolumesNative = new NativeArray<float>(restVolumes, Allocator.TempJob);
+		NativeArray<int3> volIdOrderNative = new NativeArray<int3>(4, Allocator.TempJob); // Adjust size as needed
+
+		// Convert pos from Vector3[] to float3[]
+		for (int i = 0; i < pos.Length; i++)
+		{
+			posNative[i] = pos[i];
+		}
+
+		// Initialize volIdOrderNative
+		for (int i = 0; i < 4; i++)
+		{
+			volIdOrderNative[i] = new int3(
+				TetrahedronData.volIdOrder[i][0],
+				TetrahedronData.volIdOrder[i][1],
+				TetrahedronData.volIdOrder[i][2]);
+		}
+
+		// Create a NativeStream to hold position deltas
+		NativeStream posDeltasStream = new NativeStream(numTets, Allocator.TempJob);
+
+		var job = new SolveVolumesJob
+		{
+			dt = dt,
+			volumeCompliance = volumeCompliance,
+			tetIds = tetIdsNative,
+			pos = posNative,
+			invMass = invMassNative,
+			restVolumes = restVolumesNative,
+			volIdOrder = volIdOrderNative,
+			posDeltaWriter = posDeltasStream.AsWriter()
+		};
+
+		// Schedule the job
+		JobHandle handle = job.Schedule(numTets, 256);
+		handle.Complete();
+
+		// Apply the position deltas
+		var applyDeltasJob = new ApplyPositionDeltasJob
+		{
+			posDeltaReader = posDeltasStream.AsReader(),
+			pos = posNative
+		};
+
+		handle = applyDeltasJob.Schedule();
+		handle.Complete();
+
+		// Copy back the updated positions
+		for (int i = 0; i < pos.Length; i++)
+		{
+			pos[i] = (Vector3)posNative[i];
+		}
+
+		// Dispose of NativeArrays and NativeStream
+		tetIdsNative.Dispose();
+		posNative.Dispose();
+		invMassNative.Dispose();
+		restVolumesNative.Dispose();
+		volIdOrderNative.Dispose();
+		posDeltasStream.Dispose();
 	}
 }
 
