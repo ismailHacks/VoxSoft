@@ -1,33 +1,23 @@
-//Using this test to add tetrahedrons in a voxel like way
-//Uses 5 tetrahedrons per voxel
-
-using System.Collections;
 using System.Collections.Generic;
-using JetBrains.Annotations;
-using Unity.Mathematics;
 using UnityEngine;
-using Unity.Jobs;
-using System.Security.Principal;
-using System.Threading.Tasks;
-using Unity.Collections;
-using Unity.Burst;
-using System.Linq; // Add this to use the Sum() method
 
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
 	private static int cubicSize = 10;
-	//private static int noVoxels = cubicSize*cubicSize*cubicSize+cubicSize*2*cubicSize*2*cubicSize*2+cubicSize*5*cubicSize*5*cubicSize*5;
 	private static int noVoxels = 218;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
-	private int connectionCount = 0;
 
 	public int[] vertexMapping = new int[8*noVoxels];
 	public float[] vertsVoxelMesh = new float[24*noVoxels];
 	public int[] tetIdsVoxelMesh = new int[20*noVoxels];
 	private int[] tetEdgeIdsVoxelMesh = new int[36*noVoxels];
 	private int[] tetSurfaceTriIdsVoxelMesh = new int[48*noVoxels];
+
+	bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
+	Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
+	public Dictionary<string, List<int>> faceDirectionToVoxelIDs;
 
 	//Getters
 	public override float[] GetVerts => vertsVoxelMesh;
@@ -36,15 +26,6 @@ public class voxelTet : TetrahedronData
 	public override int[] GetTetSurfaceTriIds => tetSurfaceTriIdsVoxelMesh;
 	public override int[] GetVertexMapping => vertexMapping;
 	private int voxelID = 0;
-	private int voxelID2 = 0;
-
-	bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
-	Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
-	public Dictionary<string, List<int>> faceDirectionToVoxelIDs;
-
-	bool[,,] voxelData2 = new bool[cubicSize, cubicSize, cubicSize];
-	Dictionary<Vector3Int, int> voxelPositionToID2 = new Dictionary<Vector3Int, int>();
-	public Dictionary<string, List<int>> faceDirectionToVoxelIDs2;
 
 	public voxelTet(float scale)
 	{
@@ -75,7 +56,7 @@ public class voxelTet : TetrahedronData
 
 		voxelData[0, 0, 0] = true;
 
-		makeFreeActuator(voxelData);
+		makeFreeVolume(voxelData);
 
 		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
@@ -85,10 +66,8 @@ public class voxelTet : TetrahedronData
 		Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
-	//
-	// Actuator Design Library
-	//
-	private void makeFreeActuator(bool[,,] voxelData)
+
+	private void makeFreeVolume(bool[,,] voxelData)
 	{
 		int sizeX = voxelData.GetLength(0);
     	int sizeY = voxelData.GetLength(1);
@@ -111,6 +90,10 @@ public class voxelTet : TetrahedronData
 			}
 		}
 	}
+
+	//
+	// Actuator Design Library
+	//
 
 	private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
@@ -287,7 +270,6 @@ public class voxelTet : TetrahedronData
 		vertexMapping = new int[numVertices];
 		Dictionary<Vector3, int> positionToIndex = new Dictionary<Vector3, int>();
 		Dictionary<Vector3, int> positionInternalCount = new Dictionary<Vector3, int>();
-		connectionCount = 0;
 
 		for (int i = 0; i < numVertices; i++)
 		{
@@ -303,9 +285,7 @@ public class voxelTet : TetrahedronData
 
 				internalCount++;
 				positionInternalCount[iPosition] = internalCount;
-
 				vertexMapping[i] = existingIndex;
-				connectionCount++;
 			}
 			else
 			{
