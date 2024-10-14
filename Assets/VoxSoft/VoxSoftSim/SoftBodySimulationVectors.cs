@@ -146,6 +146,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		}*/
 	}
 
+
 	//Fill the data structures needed or soft body physics
 	private void FillArrays()
 	{
