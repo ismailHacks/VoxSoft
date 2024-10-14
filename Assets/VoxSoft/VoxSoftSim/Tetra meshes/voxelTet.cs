@@ -539,14 +539,6 @@ public class voxelTet : TetrahedronData
 		0,1,3,7
 	};
 
-	private int[] tetIds3 =
-	{
-		4,7,6,5,
-		4,5,6,2,
-		7,6,5,1,
-		4,6,7,0,
-		4,7,5,3
-	};
 
 	private int[] tetIds2 =
 	{
@@ -568,14 +560,6 @@ public class voxelTet : TetrahedronData
 		0,7, 1,7, 3,7  //Outer Tetrahedron 4
 	};
 
-	private int[] tetEdgeIds3 =
-	{
-		4,7, 7,6, 6,4, 4,5, 7,5, 6,5,
-		4,2, 6,2, 5,2,
-		7,1, 6,1, 5,1,
-		4,0, 7,0, 6,0,
-		4,3, 7,3, 5,3
-	};
 
 	private int[] tetEdgeIds2 =
 	{
@@ -595,13 +579,6 @@ public class voxelTet : TetrahedronData
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
 	};
 
-	private int[] tetSurfaceTriIds3 =
-	{
-		4,5,2, 2,5,6, 4,2,6, 6,5,4,
-		6,5,1, 6,1,7, 5,7,1, 7,5,6,
-		4,0,7, 4,6,0, 7,0,6, 4,7,6,
-		4,3,5, 4,7,3, 7,5,3, 4,5,7
-	};
 
 	private int[] tetSurfaceTriIds2 =
 	{
@@ -623,25 +600,4 @@ public class voxelTet : TetrahedronData
     public static int[] voxelPositiveZ = new int[] {3, 5, 2, 4};
     public static int[] voxelNegativeY = new int[] {1, 5, 3, 7};
     public static int[] voxelPositiveY = new int[] {0, 4, 2, 6};
-
-	public static int[] voxelNegativeX3 = new int[] {7, 0, 6, 1};
-    public static int[] voxelPositiveX3 = new int[] {4, 3, 5, 2};
-    public static int[] voxelNegativeZ3 = new int[] {7, 3, 4, 0};
-    public static int[] voxelPositiveZ3 = new int[] {5, 1, 6, 2};
-    public static int[] voxelNegativeY3 = new int[] {7, 1, 5, 3};
-    public static int[] voxelPositiveY3 = new int[] {4, 2, 6, 0};
-
-	public static int[] voxelNegativeX2 = new int[] {6, 1, 7, 0};
-	public static int[] voxelPositiveX2 = new int[] {5, 2, 4, 3};
-	public static int[] voxelNegativeZ2 = new int[] {6, 2, 5, 1};
-	public static int[] voxelPositiveZ2 = new int[] {4, 0, 7, 3};
-	public static int[] voxelNegativeY2 = new int[] {6, 0, 4, 2};
-	public static int[] voxelPositiveY2 = new int[] {5, 3, 7, 1};
-
-    public static int[] voxelRight = new int[] {1, 6, 2, 5};
-    public static int[] voxelLeft = new int[] {0, 7, 3, 4};
-    public static int[] voxelFront = new int[] {1, 7, 0, 6};
-    public static int[] voxelBack = new int[] {3, 5, 2, 4};
-    public static int[] voxelTop = new int[] {1, 5, 3, 7};
-    public static int[] voxelBottom = new int[] {0, 4, 2, 6};
 }
