@@ -1,12 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
 using UnityEngine;
-using System;
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Jobs;
-
 
 //Same as SoftBodySimulation but is using Vector3 instead of arrays where an index in the array is x, y, or z 
 public class SoftBodySimulationVectors : IGrabbable
@@ -22,10 +15,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly Vector3[] prevPos;
 	private readonly Vector3[] vel;
 
-	private readonly Vector3[] stabPos;
-	private readonly Vector3[] stabPrevPos;
-	private readonly Vector3[] stabVel;
-
 	//For soft body physics using tetrahedrons
 	//The volume of each undeformed tetrahedron
 	private readonly float[] restVolumes;
@@ -38,8 +27,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	private readonly float[] invMass;
 	//Should be global so we don't have to create them a million times
 	private readonly Vector3[] gradients = new Vector3[4];
-	private readonly Vector3[] gradientsFacePressure = new Vector3[4];
-
 
 	//The Unity mesh to display the soft body mesh
 	private Mesh softBodyMesh;
@@ -57,7 +44,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Environment collision data 
 	private readonly float floorHeight = 0f;
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f);
-	int[] lift ={0};
 
 	//Grabbing with mouse to move mesh around
 	//The id of the particle we grabed with mouse
@@ -90,10 +76,6 @@ public class SoftBodySimulationVectors : IGrabbable
         pos = new Vector3[numParticles];
         prevPos = new Vector3[numParticles];
         vel = new Vector3[numParticles];
-
-        stabPos = new Vector3[numParticles];
-        stabPrevPos = new Vector3[numParticles];
-        stabVel = new Vector3[numParticles];
 
         invMass = new float[numParticles];
 
@@ -198,8 +180,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		float dt = Time.fixedDeltaTime;
 
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
-		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
-		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
 	}
 
 	public void MyUpdate()
@@ -287,14 +267,10 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
 		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
-		
-		//SolvePressureForce(dt, pressure, lift, voxelTet.voxelNegativeX);
 
 		forceMove(dt);
 		SolveEdges(dt, edgeCompliance);
 		SolveVolumes(dt, volCompliance);
-
-		//EnforceAngularMomentumConservation(dt, edgeCompliance, volCompliance);
 	}
 
 	//Solve distance constraint
@@ -405,70 +381,8 @@ public class SoftBodySimulationVectors : IGrabbable
                 int id = tetIds[4 * i + j];
 
 				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
 				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
-		}
-	}
-
-	// Place this function in your class
-	private void EnforceAngularMomentumConservation(float dt, float edgeCompliance, float volCompliance)
-	{
-		// Arrays to store original positions and corrections
-		Vector3[] posOld = new Vector3[numParticles];
-		Vector3[] deltaX = new Vector3[numParticles];
-		float[] mass = new float[numParticles];
-
-		// Store original positions and compute masses
-		for (int i = 0; i < numParticles; i++)
-		{
-			posOld[i] = pos[i];
-			mass[i] = invMass[i] == 0f ? 0f : 1f / invMass[i];
-		}
-		
-		SolveEdges(dt, edgeCompliance);
-		SolveVolumes(dt, volCompliance);
-
-		// After solving constraints, compute corrections
-		for (int i = 0; i < numParticles; i++)
-		{
-			deltaX[i] = pos[i] - posOld[i];
-		}
-
-		// Compute total change in angular momentum
-		Vector3 deltaL = Vector3.zero;
-		for (int i = 0; i < numParticles; i++)
-		{
-			deltaL += mass[i] * Vector3.Cross(posOld[i], deltaX[i]);
-		}
-
-		// Compute inertia tensor
-		Matrix3x3 inertiaTensor = new Matrix3x3();
-		for (int i = 0; i < numParticles; i++)
-		{
-			Vector3 r = posOld[i];
-			float m = mass[i];
-
-			// Inertia tensor contribution from particle i
-			float rDotR = Vector3.Dot(r, r);
-			Matrix3x3 identity = Matrix3x3.Identity();
-			Matrix3x3 outerProduct = Matrix3x3.OuterProduct(r, r);
-
-			Matrix3x3 inertiaContribution = (identity * rDotR - outerProduct) * m;
-			inertiaTensor += inertiaContribution;
-		}
-
-		// Invert inertia tensor
-		Matrix3x3 inertiaTensorInv = inertiaTensor.Inverse();
-
-		// Compute angular velocity correction
-		Vector3 omega = inertiaTensorInv * deltaL;
-
-		// Adjust particle positions
-		for (int i = 0; i < numParticles; i++)
-		{
-			Vector3 correction = Vector3.Cross(omega, posOld[i]);
-			pos[i] = posOld[i] + deltaX[i] - correction;
 		}
 	}
 	
@@ -576,45 +490,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		for (int i = 0; i < numParticles; i++)
 		{
 			EnvironmentCollision(i);
-		}
-	}
-	
-	//Integrates a pressure force on all tetrahedron surfaces
-	private void SolveExternalVoxelPressureForce(float dt, float pressure)
-	{
-		for (int i = 0; i < numTets; i++)
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				int idThis = tetIds[4 * i + j];
-				// The 3 opposite vertices ids
-				int id0 = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
-				int id1 = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
-				int id2 = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
-
-				Vector3 id1_minus_id0 = pos[id1] - pos[id0];
-				Vector3 id2_minus_id0 = pos[id2] - pos[id0];
-				Vector3 cross = Vector3.Cross(id1_minus_id0, id2_minus_id0);
-
-				float faceArea = cross.magnitude * 0.5f;
-				Vector3 normal = cross.normalized;
-
-				float pressureForce = pressure * faceArea;
-
-				// Apply pressure force to each vertex of the face
-				if (invMass[id0] != 0)
-				{
-					vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
-				}
-				if (invMass[id1] != 0)
-				{
-					vel[id1] += (pressureForce * invMass[id1]) * normal * dt;
-				}
-				if (invMass[id2] != 0)
-				{
-					vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
-				}
-			}
 		}
 	}
 
@@ -871,292 +746,5 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		return pos[grabId];
     }
-
-	public class Matrix3x3
-	{
-		private float[,] m = new float[3, 3];
-
-		// Constructor initializes to zero matrix
-		public Matrix3x3()
-		{
-			SetZero();
-		}
-
-		public void SetZero()
-		{
-			for (int i = 0; i < 3; i++)
-				for (int j = 0; j < 3; j++)
-					m[i, j] = 0f;
-		}
-
-		public static Matrix3x3 Identity()
-		{
-			Matrix3x3 mat = new Matrix3x3();
-			mat.m[0, 0] = mat.m[1, 1] = mat.m[2, 2] = 1f;
-			return mat;
-		}
-		
-		public static Matrix3x3 operator -(Matrix3x3 a, Matrix3x3 b)
-		{
-			Matrix3x3 result = new Matrix3x3();
-			for (int i = 0; i < 3; i++)
-			{
-				for (int j = 0; j < 3; j++)
-				{
-					result.m[i, j] = a.m[i, j] - b.m[i, j];
-				}
-			}
-			return result;
-		}
-
-		public static Matrix3x3 operator +(Matrix3x3 a, Matrix3x3 b)
-		{
-			Matrix3x3 result = new Matrix3x3();
-			for (int i = 0; i < 3; i++)
-				for (int j = 0; j < 3; j++)
-					result.m[i, j] = a.m[i, j] + b.m[i, j];
-			return result;
-		}
-
-		public static Matrix3x3 operator *(Matrix3x3 a, float scalar)
-		{
-			Matrix3x3 result = new Matrix3x3();
-			for (int i = 0; i < 3; i++)
-				for (int j = 0; j < 3; j++)
-					result.m[i, j] = a.m[i, j] * scalar;
-			return result;
-		}
-
-		public static Matrix3x3 OuterProduct(Vector3 a, Vector3 b)
-		{
-			Matrix3x3 result = new Matrix3x3();
-			result.m[0, 0] = a.x * b.x;
-			result.m[0, 1] = a.x * b.y;
-			result.m[0, 2] = a.x * b.z;
-			result.m[1, 0] = a.y * b.x;
-			result.m[1, 1] = a.y * b.y;
-			result.m[1, 2] = a.y * b.z;
-			result.m[2, 0] = a.z * b.x;
-			result.m[2, 1] = a.z * b.y;
-			result.m[2, 2] = a.z * b.z;
-			return result;
-		}
-
-		public Matrix3x3 Inverse()
-		{
-			// Compute the determinant
-			float det = m[0, 0] * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1])
-					- m[0, 1] * (m[1, 0] * m[2, 2] - m[1, 2] * m[2, 0])
-					+ m[0, 2] * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0]);
-
-			if (Mathf.Abs(det) < 1e-6f)
-			{
-				// Matrix is singular and cannot be inverted
-				return Identity();
-			}
-
-			float invDet = 1.0f / det;
-
-			Matrix3x3 inv = new Matrix3x3();
-
-			inv.m[0, 0] = invDet * (m[1, 1] * m[2, 2] - m[1, 2] * m[2, 1]);
-			inv.m[0, 1] = invDet * (m[0, 2] * m[2, 1] - m[0, 1] * m[2, 2]);
-			inv.m[0, 2] = invDet * (m[0, 1] * m[1, 2] - m[0, 2] * m[1, 1]);
-
-			inv.m[1, 0] = invDet * (m[1, 2] * m[2, 0] - m[1, 0] * m[2, 2]);
-			inv.m[1, 1] = invDet * (m[0, 0] * m[2, 2] - m[0, 2] * m[2, 0]);
-			inv.m[1, 2] = invDet * (m[0, 2] * m[1, 0] - m[0, 0] * m[1, 2]);
-
-			inv.m[2, 0] = invDet * (m[1, 0] * m[2, 1] - m[1, 1] * m[2, 0]);
-			inv.m[2, 1] = invDet * (m[0, 1] * m[2, 0] - m[0, 0] * m[2, 1]);
-			inv.m[2, 2] = invDet * (m[0, 0] * m[1, 1] - m[0, 1] * m[1, 0]);
-
-			return inv;
-		}
-
-		public static Vector3 operator *(Matrix3x3 a, Vector3 v)
-		{
-			Vector3 result = new Vector3();
-			result.x = a.m[0, 0] * v.x + a.m[0, 1] * v.y + a.m[0, 2] * v.z;
-			result.y = a.m[1, 0] * v.x + a.m[1, 1] * v.y + a.m[1, 2] * v.z;
-			result.z = a.m[2, 0] * v.x + a.m[2, 1] * v.y + a.m[2, 2] * v.z;
-			return result;
-		}
-	}
-
-	[BurstCompile]
-	struct SolveVolumesJob : IJobParallelFor
-	{
-		public float dt;
-		public float volumeCompliance;
-		[ReadOnly] public NativeArray<int> tetIds;
-		[ReadOnly] public NativeArray<float3> pos;
-		[ReadOnly] public NativeArray<float> invMass;
-		[ReadOnly] public NativeArray<float> restVolumes;
-		[ReadOnly] public NativeArray<int3> volIdOrder;
-
-		[NativeDisableParallelForRestriction]
-		public NativeStream.Writer posDeltaWriter;
-
-		public void Execute(int i)
-		{
-			float alpha = volumeCompliance / (dt * dt);
-			float wTimesGrad = 0f;
-
-			// Local array for gradients
-			float3[] gradients = new float3[4];
-
-			// For each vertex in the tetrahedron
-			for (int j = 0; j < 4; j++)
-			{
-				int idThis = tetIds[4 * i + j];
-				int3 volOrder = volIdOrder[j];
-
-				int id0 = tetIds[4 * i + volOrder.x];
-				int id1 = tetIds[4 * i + volOrder.y];
-				int id2 = tetIds[4 * i + volOrder.z];
-
-				float3 id1_minus_id0 = pos[id1] - pos[id0];
-				float3 id2_minus_id0 = pos[id2] - pos[id0];
-				float3 cross = math.cross(id1_minus_id0, id2_minus_id0);
-
-				float3 gradC = cross;
-				gradients[j] = gradC;
-				wTimesGrad += invMass[idThis] * math.lengthsq(gradC);
-			}
-
-			if (wTimesGrad == 0f)
-				return;
-
-			float vol = GetTetVolume(i);
-			float restVol = restVolumes[i];
-
-			float C = 6f * (vol - restVol);
-			float lambda = -C / (wTimesGrad + alpha);
-
-			// Write position deltas to the NativeStream
-			posDeltaWriter.BeginForEachIndex(i);
-			for (int j = 0; j < 4; j++)
-			{
-				int id = tetIds[4 * i + j];
-				float3 delta = lambda * invMass[id] * gradients[j];
-
-				// Write the vertex index and delta to the stream
-				posDeltaWriter.Write(id);
-				posDeltaWriter.Write(delta);
-			}
-			posDeltaWriter.EndForEachIndex();
-		}
-
-		private float GetTetVolume(int i)
-		{
-			int id0 = tetIds[4 * i + 0];
-			int id1 = tetIds[4 * i + 1];
-			int id2 = tetIds[4 * i + 2];
-			int id3 = tetIds[4 * i + 3];
-
-			float3 x0 = pos[id0];
-			float3 x1 = pos[id1];
-			float3 x2 = pos[id2];
-			float3 x3 = pos[id3];
-
-			return math.dot(math.cross(x1 - x0, x2 - x0), x3 - x0) / 6f;
-		}
-	}
-
-	[BurstCompile]
-	struct ApplyPositionDeltasJob : IJob
-	{
-		[ReadOnly] public NativeStream.Reader posDeltaReader;
-		[NativeDisableParallelForRestriction] public NativeArray<float3> pos;
-
-		public void Execute()
-		{
-			int forEachCount = posDeltaReader.ForEachCount;
-
-			for (int i = 0; i < forEachCount; i++)
-			{
-				posDeltaReader.BeginForEachIndex(i);
-				while (posDeltaReader.RemainingItemCount > 0)
-				{
-					int id = posDeltaReader.Read<int>();
-					float3 delta = posDeltaReader.Read<float3>();
-
-					// Accumulate the delta
-					pos[id] += delta;
-				}
-				posDeltaReader.EndForEachIndex();
-			}
-		}
-	}
-
-	// Usage
-	void SolveVolumesBurst(float dt, float volumeCompliance)
-	{
-		// Convert your existing arrays to NativeArrays as before
-		NativeArray<int> tetIdsNative = new NativeArray<int>(tetIds, Allocator.TempJob);
-		NativeArray<float3> posNative = new NativeArray<float3>(pos.Length, Allocator.TempJob);
-		NativeArray<float> invMassNative = new NativeArray<float>(invMass, Allocator.TempJob);
-		NativeArray<float> restVolumesNative = new NativeArray<float>(restVolumes, Allocator.TempJob);
-		NativeArray<int3> volIdOrderNative = new NativeArray<int3>(4, Allocator.TempJob); // Adjust size as needed
-
-		// Convert pos from Vector3[] to float3[]
-		for (int i = 0; i < pos.Length; i++)
-		{
-			posNative[i] = pos[i];
-		}
-
-		// Initialize volIdOrderNative
-		for (int i = 0; i < 4; i++)
-		{
-			volIdOrderNative[i] = new int3(
-				TetrahedronData.volIdOrder[i][0],
-				TetrahedronData.volIdOrder[i][1],
-				TetrahedronData.volIdOrder[i][2]);
-		}
-
-		// Create a NativeStream to hold position deltas
-		NativeStream posDeltasStream = new NativeStream(numTets, Allocator.TempJob);
-
-		var job = new SolveVolumesJob
-		{
-			dt = dt,
-			volumeCompliance = volumeCompliance,
-			tetIds = tetIdsNative,
-			pos = posNative,
-			invMass = invMassNative,
-			restVolumes = restVolumesNative,
-			volIdOrder = volIdOrderNative,
-			posDeltaWriter = posDeltasStream.AsWriter()
-		};
-
-		// Schedule the job
-		JobHandle handle = job.Schedule(numTets, 256);
-		handle.Complete();
-
-		// Apply the position deltas
-		var applyDeltasJob = new ApplyPositionDeltasJob
-		{
-			posDeltaReader = posDeltasStream.AsReader(),
-			pos = posNative
-		};
-
-		handle = applyDeltasJob.Schedule();
-		handle.Complete();
-
-		// Copy back the updated positions
-		for (int i = 0; i < pos.Length; i++)
-		{
-			pos[i] = (Vector3)posNative[i];
-		}
-
-		// Dispose of NativeArrays and NativeStream
-		tetIdsNative.Dispose();
-		posNative.Dispose();
-		invMassNative.Dispose();
-		restVolumesNative.Dispose();
-		volIdOrderNative.Dispose();
-		posDeltasStream.Dispose();
-	}
 }
 

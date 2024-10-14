@@ -73,49 +73,12 @@ public class voxelTet : TetrahedronData
 			}
 		}
 
-
-		/*for (int xPos = 0; xPos < cubicSize-3; xPos++)
-		{
-			for (int yPos = 0; yPos < cubicSize-3; yPos++)
-			{
-				for (int zPos = 0; zPos < cubicSize-3; zPos++)
-				{
-						voxelData2[xPos, yPos, zPos] = true; // Filled
-				}
-			}
-		}
-
-		for (int xPos = 1; xPos < cubicSize - 4; xPos++)
-		{
-			for (int yPos = 1; yPos < cubicSize - 4; yPos++)
-			{
-				for (int zPos = 1; zPos < cubicSize - 4; zPos++)
-				{
-					voxelData2[xPos, yPos, zPos] = false; // Empty inside
-				}
-			}
-		}*/
-
 		voxelData[0, 0, 0] = true;
-		//voxelData2[0, 0, 0] = true;
-
 
 		makeFreeActuator(voxelData);
-		//makeFreeActuator2(voxelData2);
 
 		VoxelEnclosedSpaceDetector detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
-		VoxelEnclosedSpaceDetector detector2 = new VoxelEnclosedSpaceDetector();
-    	faceDirectionToVoxelIDs2 = detector2.DetectEnclosedSpaces(voxelData2, voxelPositionToID2);
-
-		/*foreach (var kvp in faceDirectionToVoxelIDs)
-		{
-			string faceDirection = kvp.Key;
-			List<int> voxelIDs = kvp.Value;
-
-			Debug.Log($"Face Direction: {faceDirection}");
-			Debug.Log($"Voxel IDs: {string.Join(", ", voxelIDs)}");
-		}*/
 
 		Debug.Log("Number of Voxels = " + globalVoxelCount);
 		combineVoxels();
@@ -148,32 +111,6 @@ public class voxelTet : TetrahedronData
 			}
 		}
 	}
-
-	private void makeFreeActuator2(bool[,,] voxelData2)
-	{
-		int sizeX = voxelData2.GetLength(0);
-    	int sizeY = voxelData2.GetLength(1);
-    	int sizeZ = voxelData2.GetLength(2);
-
-		for (int xPos = 0; xPos < sizeX; xPos++)
-		{
-			for (int yPos = 0; yPos < sizeY; yPos++)
-			{
-				for (int zPos = 0; zPos < sizeZ; zPos++)
-				{
-					if (voxelData2[xPos, yPos, zPos])
-					{
-						makeVoxel2(xPos, yPos, zPos);
-						Vector3Int position = new Vector3Int(xPos, yPos, zPos);
-                    	voxelPositionToID2[position] = voxelID2;
-                    	voxelID2++;
-					}
-				}
-			}
-		}
-	}
-
-
 
 	private void makeCylindricalActuator(int posX, int posY, int posZ, 
 	float width, float wallThickness, float capHeight, 
@@ -315,94 +252,6 @@ public class voxelTet : TetrahedronData
 	}
 
 	//
-	// Core Shape Library Alternate Mesh
-	//
-	private void makeGyroid2(int posX, int posY, int posZ, float width, float sensitivity, float tp)
-	{
-		for (int i = 0; i < (int)width; i++)
-		{
-			for (int j = (int)-0; j < width; j++)
-			{
-				for (int k = (int)-width/2; k < width/2; k++)
-				{
-					float gyroid = Mathf.Sin(i/tp)*Mathf.Cos(j/tp) + Mathf.Sin(j/tp)*Mathf.Cos(k/tp) + Mathf.Sin(k/tp)*Mathf.Cos(i/tp);
-					if(gyroid < sensitivity && gyroid > -sensitivity)
-					{
-						makeVoxel2(i+posX,j+posY,k+posZ);
-					}
-				}
-			}	
-		}
-	}
-
-	private void makeCylinder2(int posX, int posY, int posZ, float radius, float height)
-	{
-		for (int k = 0; k < height; k++)
-		{
-			for (int i = (int)-radius; i < radius; i++)
-			{
-				for (int j = (int)-radius; j < radius; j++)
-				{
-					if(Mathf.Sqrt(i*i+j*j)<radius)
-					{
-						makeVoxel2(i+posX,k+posY,j+posZ);
-					}
-				}
-			}	
-		}
-	}
-
-	private void makeTube2(int posX, int posY, int posZ, float outerRadius, float innerRadius, float height)
-	{
-		for (int k = 0; k < height; k++)
-		{
-			for (int i = (int)-outerRadius; i < outerRadius; i++)
-			{
-				for (int j = (int)-outerRadius; j < outerRadius; j++)
-				{
-					if(Mathf.Sqrt(i*i+j*j)<outerRadius && Mathf.Sqrt(i*i+j*j)>innerRadius)
-					{
-						makeVoxel2(i+posX,k+posY,j+posZ);
-					}
-				}
-			}	
-		}
-	}
-
-	private void makeCuboid2(int posX, int posY, int posZ, int length, int height, int width)
-	{
-		for (int k = 0; k < height; k++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				for (int i = 0; i < length; i++)
-				{
-					makeVoxel2(posX+i, posY+k, posZ+j);
-				}
-			}
-		}
-	}
-
-	//Currently gets messed up with environment collision
-	private void makeSphere2(int posX, int posY, int posZ, int radius)
-	{
-		for (int k = -radius; k < radius; k++)
-		{
-			for (int j = -radius; j < radius; j++)
-			{
-				for (int i = -radius; i < radius; i++)
-				{
-					float distVal = Mathf.Sqrt(i*i+j*j+k*k);
-					if (distVal < radius)
-					{
-						makeVoxel2(posX+i, posY+k, posZ+j);
-					}
-				}
-			}
-		}
-	}
-
-	//
 	// Voxel Generation
 	//
 
@@ -432,32 +281,6 @@ public class voxelTet : TetrahedronData
 		globalVoxelCount++;
 	}
 
-	private void makeVoxel2(int posX, int posY, int posZ)
-	{
-		for (int i = 0; i < verts.Length/3; i++)
-		{
-			vertsVoxelMesh[3*i+(24*globalVoxelCount)] = (verts[3*i]+posX)*voxelScale;
-			vertsVoxelMesh[3*i+1+(24*globalVoxelCount)] = (verts[3*i+1]+posY)*voxelScale;
-			vertsVoxelMesh[3*i+2+(24*globalVoxelCount)] = (verts[3*i+2]+posZ)*voxelScale;
-		}
-
-		for (int i = 0; i < tetIds.Length; i++)
-		{
-			tetIdsVoxelMesh[i+20*globalVoxelCount] = tetIds2[i]+8*globalVoxelCount;
-		}
-
-		for (int i = 0; i < tetEdgeIds.Length; i++)
-		{
-			tetEdgeIdsVoxelMesh[i+36*globalVoxelCount] = tetEdgeIds2[i]+8*globalVoxelCount;
-		}
-
-		for (int i = 0; i < tetSurfaceTriIds.Length; i++)
-		{
-			tetSurfaceTriIdsVoxelMesh[i+48*globalVoxelCount] = tetSurfaceTriIds2[i]+8*globalVoxelCount;
-		}
-		globalVoxelCount++;
-	}
-
 	private void combineVoxels()
 	{
 		int numVertices = vertsVoxelMesh.Length / 3;
@@ -477,12 +300,6 @@ public class voxelTet : TetrahedronData
 				{
 					internalCount = 0;
 				}
-
-				/*if (internalCount >= 7)
-				{
-					// Skip mapping this duplicate
-					continue;
-				}*/
 
 				internalCount++;
 				positionInternalCount[iPosition] = internalCount;
@@ -539,16 +356,6 @@ public class voxelTet : TetrahedronData
 		0,1,3,7
 	};
 
-
-	private int[] tetIds2 =
-	{
-		1,0,3,2,
-		1,2,3,5,
-		0,3,2,4,
-		1,3,0,7,
-		1,0,2,6
-	};
-
 	//Provides the connections between each one of the edges in the tetrahedral voxel
 	//unlike tetIds the edges should not be repeated with connecting tetrahedrals as they will be looped over.
 	private int[] tetEdgeIds =
@@ -560,16 +367,6 @@ public class voxelTet : TetrahedronData
 		0,7, 1,7, 3,7  //Outer Tetrahedron 4
 	};
 
-
-	private int[] tetEdgeIds2 =
-	{
-		5,6, 6,7, 7,5, 5,4, 6,4, 7,4,
-		5,3, 7,3, 4,3,
-		6,0, 7,0, 4,0,
-		5,1, 6,1, 7,1,
-		5,2, 6,2, 4,2
-	};
-
 	//Provides the connections between all surfaces that are visible in order to render a mesh, must be clockwise done when looking at the surface.
 	private int[] tetSurfaceTriIds =
 	{
@@ -577,15 +374,6 @@ public class voxelTet : TetrahedronData
 		2,3,5, 2,5,1, 3,1,5, 1,3,2, //Outer Tetrahedron 2
 		0,6,1, 0,2,6, 1,6,2, 0,1,2, //Outer Tetrahedron 3
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
-	};
-
-
-	private int[] tetSurfaceTriIds2 =
-	{
-		5,4,3, 3,4,7, 5,3,7, 7,4,5,
-		7,4,0, 7,0,6, 4,6,0, 6,4,7,
-		5,1,6, 5,7,1, 6,1,7, 5,6,7,
-		5,2,4, 5,6,2, 6,4,2, 5,4,6
 	};
 
 	public int[] vertexMap()
