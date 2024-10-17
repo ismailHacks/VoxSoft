@@ -12,7 +12,9 @@ public class VoxelEnclosedSpaceDetector : MonoBehaviour
     // Visited markers for flood fill
     bool[,,] visited;
 
-Dictionary<Vector3Int, int> voxelPositionToID;
+    bool debug = false;
+
+    Dictionary<Vector3Int, int> voxelPositionToID;
 
     public Dictionary<string, List<int>> DetectEnclosedSpaces(
         bool[,,] inputVoxelData, Dictionary<Vector3Int, int> positionToIDMap)
@@ -39,8 +41,6 @@ Dictionary<Vector3Int, int> voxelPositionToID;
 
         return faceDirectionToVoxelIDs;
     }
-
-    // Existing methods...
 
     Dictionary<string, List<int>> MapWallVoxelsToIDs(Dictionary<Vector3Int, List<string>> wallVoxels)
     {
@@ -72,8 +72,27 @@ Dictionary<Vector3Int, int> voxelPositionToID;
         return faceDirectionToVoxelIDs;
     }
 
-    // Directions for neighbor checking
-    Vector3Int[] directions = new Vector3Int[]
+    // Directions for flood fill (including diagonals)
+    Vector3Int[] floodFillDirections = new Vector3Int[]
+    {
+        new Vector3Int(1, 0, 0),   // Right
+        new Vector3Int(-1, 0, 0),  // Left
+        new Vector3Int(0, 1, 0),   // Up
+        new Vector3Int(0, -1, 0),  // Down
+        new Vector3Int(0, 0, 1),   // Forward
+        new Vector3Int(0, 0, -1),  // Backward
+        new Vector3Int(1, 1, 1),
+        new Vector3Int(1, 1, -1),
+        new Vector3Int(-1, 1, 1),
+        new Vector3Int(-1, 1, -1),
+        new Vector3Int(1, -1, 1),
+        new Vector3Int(1, -1, -1),
+        new Vector3Int(-1, -1, 1),
+        new Vector3Int(-1, -1, -1)
+    };
+
+    // Directions for neighbor checking (only face directions)
+    Vector3Int[] faceDirections = new Vector3Int[]
     {
         new Vector3Int(1, 0, 0),   // Right
         new Vector3Int(-1, 0, 0),  // Left
@@ -83,7 +102,7 @@ Dictionary<Vector3Int, int> voxelPositionToID;
         new Vector3Int(0, 0, -1)   // Backward
     };
 
-    // Exposed face names corresponding to directions
+    // Exposed face names corresponding to face directions
     string[] faceNames = new string[]
     {
         "Right",
@@ -129,13 +148,21 @@ Dictionary<Vector3Int, int> voxelPositionToID;
         {
             Vector3Int pos = queue.Dequeue();
 
-            foreach (Vector3Int dir in directions)
+            foreach (Vector3Int dir in floodFillDirections)
             {
                 Vector3Int neighbor = pos + dir;
 
                 if (IsWithinBounds(neighbor) && !visited[neighbor.x, neighbor.y, neighbor.z] && !voxelData[neighbor.x, neighbor.y, neighbor.z])
                 {
                     visited[neighbor.x, neighbor.y, neighbor.z] = true;
+                    if(debug)
+                    {
+                            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = new Vector3(neighbor.x*0.005f+0.0025f, neighbor.y*0.005f+0.0025f, neighbor.z*0.005f+0.0025f);
+                            cube.transform.localScale = new Vector3(0.0025f,0.0025f,0.0025f);
+                            Renderer cubeRenderer = cube.GetComponent<Renderer>();
+                            cubeRenderer.material.color = Color.red;
+                    }
                     queue.Enqueue(neighbor);
                 }
             }
@@ -148,6 +175,14 @@ Dictionary<Vector3Int, int> voxelPositionToID;
         {
             visited[x, y, z] = true;
             queue.Enqueue(new Vector3Int(x, y, z));
+            if(debug)
+            {
+                GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cube.transform.position = new Vector3(x*0.005f+0.0025f, y*0.005f+0.0025f, z*0.005f+0.0025f);
+                cube.transform.localScale = new Vector3(0.0025f,0.0025f,0.0025f);
+                Renderer cubeRenderer = cube.GetComponent<Renderer>();
+                cubeRenderer.material.color = Color.red;
+            }
         }
     }
 
@@ -164,6 +199,14 @@ Dictionary<Vector3Int, int> voxelPositionToID;
                     if (!voxelData[x, y, z] && !visited[x, y, z])
                     {
                         enclosedEmptyVoxels.Add(new Vector3Int(x, y, z));
+                        if(debug)
+                        {
+                            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = new Vector3(x*0.005f+0.0025f, y*0.005f+0.0025f, z*0.005f+0.0025f);
+                            cube.transform.localScale = new Vector3(0.0025f,0.0025f,0.0025f);
+                            Renderer cubeRenderer = cube.GetComponent<Renderer>();
+                            cubeRenderer.material.color = Color.blue;
+                        }
                     }
                 }
             }
@@ -178,9 +221,9 @@ Dictionary<Vector3Int, int> voxelPositionToID;
 
         foreach (Vector3Int emptyPos in enclosedEmptyVoxels)
         {
-            for (int i = 0; i < directions.Length; i++)
+            for (int i = 0; i < faceDirections.Length; i++)
             {
-                Vector3Int dir = directions[i];
+                Vector3Int dir = faceDirections[i];
                 Vector3Int neighborPos = emptyPos + dir;
 
                 if (IsWithinBounds(neighborPos) && voxelData[neighborPos.x, neighborPos.y, neighborPos.z])

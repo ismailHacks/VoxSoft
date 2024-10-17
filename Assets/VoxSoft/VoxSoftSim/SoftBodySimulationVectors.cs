@@ -6,7 +6,7 @@ public class SoftBodySimulationVectors : IGrabbable
 {
 	//Tetrahedralizer data structures
 	private readonly TetrahedronData tetraData;
-	public voxelTet vox;
+	//public voxelTet vox;
 	private readonly int[] tetIds;
 	private readonly int[] tetEdgeIds;
 	private readonly float density = 1000; //kg/m^3
@@ -55,9 +55,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	public int GetGrabId => grabId;
 
 	Dictionary<string, List<int>> faceDirections;
-	private voxelTet myVoxelTet;
+	public voxelTet myVoxelTet;
 
-	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale)
+	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale, voxelTet vox)
     {
         //Tetra data structures
         this.tetraData = tetraData;
@@ -94,12 +94,12 @@ public class SoftBodySimulationVectors : IGrabbable
         InitMesh(meshFilter, tetraData);
 
 		//Initiallising the pressure points
+		myVoxelTet = vox;
         pressurePoints(scale);
     }
 
-    private void pressurePoints(float scale)
+    public void pressurePoints(float scale)
     {
-        myVoxelTet = new voxelTet(scale);
        	faceDirections = myVoxelTet.faceDirectionToVoxelIDs;
     }
 
@@ -525,16 +525,10 @@ public class SoftBodySimulationVectors : IGrabbable
 
                 Vector3 normal = (crossF1.normalized+crossF2.normalized).normalized;
 
-				/*Debug.DrawRay(pos[id0], -crossF2.normalized, Color.blue);
-				Debug.DrawRay(pos[id1], -crossF1.normalized, Color.green);
-				Debug.DrawRay(pos[id2], -crossF1.normalized, Color.yellow);
-				Debug.DrawRay(pos[id3], -crossF2.normalized, Color.red);*/
-
-
-				/*Debug.DrawRay(pos[id0], -normal, Color.blue);
-				Debug.DrawRay(pos[id1], -normal, Color.green);
-				Debug.DrawRay(pos[id2], -normal, Color.yellow);
-				Debug.DrawRay(pos[id3], -normal, Color.red);*/
+				/*Debug.DrawRay(pos[id0], crossF2.normalized*0.005f, Color.blue);
+				Debug.DrawRay(pos[id1], crossF1.normalized*0.005f, Color.magenta);
+				Debug.DrawRay(pos[id2], crossF1.normalized*0.005f, Color.yellow);
+				Debug.DrawRay(pos[id3], crossF2.normalized*0.005f, Color.red);*/
 
                 float pressureForce = (pressure * (faceAreaF1+faceAreaF2))/4f;
 
@@ -555,24 +549,6 @@ public class SoftBodySimulationVectors : IGrabbable
                 {
                     vel[id3] += (pressureForce * invMass[id2]) * crossF2.normalized * dt;
                 }
-
-
-				/*if (invMass[id0] != 0)
-                {
-                    vel[id0] += (pressureForce * invMass[id0]) * normal * dt;
-                }
-                if (invMass[id1] != 0)
-                {
-                    vel[id1] += (pressureForce * invMass[id1]) * normal * dt;
-                }
-                if (invMass[id2] != 0)
-                {
-                    vel[id2] += (pressureForce * invMass[id2]) * normal * dt;
-                }
-				if (invMass[id3] != 0)
-                {
-                    vel[id3] += (pressureForce * invMass[id2]) * normal * dt;
-                }*/
             }
         }
     }
