@@ -722,5 +722,21 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		return pos[grabId];
     }
+
+    public Vector3 CalculateCenterOfMass()
+    {
+        Vector3 centerOfMass = Vector3.zero;
+
+        // Sum up all particle positions
+        for (int i = 0; i < numParticles; i++)
+        {
+            centerOfMass += pos[i];
+        }
+
+        // Divide by the number of particles to get the average position
+        centerOfMass /= numParticles;
+
+        return centerOfMass;
+    }
 }
 
