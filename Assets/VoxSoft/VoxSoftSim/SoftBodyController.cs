@@ -39,6 +39,7 @@ public class SoftBodyController : MonoBehaviour
         UnityEngine.Random.InitState(SEED);
         
         TetrahedronData softBodyMesh = new voxelTet(scale);
+        voxelTet voxelSpecific = (voxelTet)softBodyMesh;
         //TetrahedronData softBodyMesh = new tetGen(scale);
         //TetrahedronData softBodyMesh = new StanfordBunny();
 
@@ -57,7 +58,7 @@ public class SoftBodyController : MonoBehaviour
 
             mat.color = colors[0];
             
-            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos);
+            SoftBodySimulationVectors softBodySim = new SoftBodySimulationVectors(meshFilter, softBodyMesh, startPos, scale, voxelSpecific);
 
             allSoftBodies.Add(softBodySim);
         }
