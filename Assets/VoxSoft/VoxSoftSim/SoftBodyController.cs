@@ -33,12 +33,13 @@ public class SoftBodyController : MonoBehaviour
     private Grabber grabber;
     private bool simulate = true;
     private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
+    float[] voxPos = new float[343];
 
     private void Start()
     {
         UnityEngine.Random.InitState(SEED);
         
-        TetrahedronData softBodyMesh = new voxelTet(scale);
+        TetrahedronData softBodyMesh = new voxelTet(scale, voxPos);
         voxelTet voxelSpecific = (voxelTet)softBodyMesh;
         //TetrahedronData softBodyMesh = new tetGen(scale);
         //TetrahedronData softBodyMesh = new StanfordBunny();

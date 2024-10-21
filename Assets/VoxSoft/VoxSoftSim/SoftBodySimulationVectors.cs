@@ -57,6 +57,8 @@ public class SoftBodySimulationVectors : IGrabbable
 	Dictionary<string, List<int>> faceDirections;
 	public voxelTet myVoxelTet;
 
+	private readonly HashSet<int> usedVertices;
+
 	public SoftBodySimulationVectors(MeshFilter meshFilter, TetrahedronData tetraData, Vector3 startPos, float scale, voxelTet vox)
     {
         //Tetra data structures
@@ -82,6 +84,14 @@ public class SoftBodySimulationVectors : IGrabbable
         restVolumes = new float[numTets];
         restEdgeLengths = new float[numEdges];
         restEdgeLengthsOriginal = new float[numEdges];
+
+		usedVertices = new HashSet<int>();
+
+		// For each tetrahedron, add its vertex indices to the set
+		for (int i = 0; i < tetIds.Length; i++)
+		{
+			usedVertices.Add(tetIds[i]);
+		}
 
 
         //Fill the arrays
@@ -150,8 +160,8 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 		totalMass = totalMass/2;
 		float pMass = totalMass/numParticles;
-		Debug.Log("Num Vertices = " + numParticles);
-		Debug.Log("Mass = " + totalMass);
+		//Debug.Log("Num Vertices = " + numParticles);
+		//Debug.Log("Mass = " + totalMass);
 
 		for (int i = 0; i < numParticles; i++)
 		{
@@ -261,12 +271,38 @@ public class SoftBodySimulationVectors : IGrabbable
 		//- Compliance (inverse stiffness): alpha
 
 		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
-		SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
+		/*SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
 		SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
 		SolvePressureForce(dt, pressure, faceDirections["Top"].ToArray(), voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
-		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
+		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
+
+		if (faceDirections.ContainsKey("Right"))
+		{
+			//Debug.Log("Pressurising");
+			SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
+		}
+		if (faceDirections.ContainsKey("Left"))
+		{
+			SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
+		}
+		if (faceDirections.ContainsKey("Top"))
+		{
+			SolvePressureForce(dt, pressure, faceDirections["Top"].ToArray(), voxelTet.voxelPositiveY);
+		}
+		if (faceDirections.ContainsKey("Bottom"))
+		{
+			SolvePressureForce(dt, pressure, faceDirections["Bottom"].ToArray(), voxelTet.voxelNegativeY);
+		}
+		if (faceDirections.ContainsKey("Front"))
+		{
+			SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
+		}
+		if (faceDirections.ContainsKey("Back"))
+		{
+			SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);
+		}
 
 		forceMove(dt);
 		SolveEdges(dt, edgeCompliance);
@@ -723,20 +759,28 @@ public class SoftBodySimulationVectors : IGrabbable
 		return pos[grabId];
     }
 
-    public Vector3 CalculateCenterOfMass()
-    {
-        Vector3 centerOfMass = Vector3.zero;
+	public Vector3 CalculateCenterOfMass()
+	{
+		Vector3 centerOfMass = Vector3.zero;
+		float totalMass = 0f;
 
-        // Sum up all particle positions
-        for (int i = 0; i < numParticles; i++)
-        {
-            centerOfMass += pos[i];
-        }
+		foreach (int i in usedVertices)
+		{
+			float mass = invMass[i] > 0f ? 1f / invMass[i] : 0f;
+			centerOfMass += pos[i] * mass;
+			totalMass += mass;
+		}
 
-        // Divide by the number of particles to get the average position
-        centerOfMass /= numParticles;
+		if (totalMass > 0f)
+		{
+			centerOfMass /= totalMass;
+		}
+		else
+		{
+			centerOfMass = Vector3.zero;
+		}
 
-        return centerOfMass;
-    }
+		return centerOfMass;
+	}
 }
 

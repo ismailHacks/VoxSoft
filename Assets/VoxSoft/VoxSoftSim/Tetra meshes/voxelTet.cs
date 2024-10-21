@@ -4,8 +4,8 @@ using UnityEngine;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int cubicSize = 10;
-	private static int noVoxels = 488;
+	private static int cubicSize = 7;
+	private static int noVoxels = 343;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 
@@ -28,19 +28,14 @@ public class voxelTet : TetrahedronData
 	public override int[] GetVertexMapping => vertexMapping;
 	private int voxelID = 0;
 
-	public voxelTet(float scale)
+	public voxelTet(float scale, float[] voxPos)
 	{
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		//makeCylinder(4,0,4,3,3,true);
-		//GenerateRandomVoxelGrid(cubicSize);
-
-		makeCuboid(0,0,0,10,10,10,true);
-		makeCuboid(1,1,1,8,8,8,false);
-
-		//makeCuboid(4,4,4,3,3,3,true);
-		//makeCuboid(5,5,5,1,1,1,false);
+		//makeCuboid(0,0,0,7,7,7,true);
+		//makeCuboid(1,1,1,5,5,5,false);
+		GenerateVoxelGridInt(cubicSize, voxPos);
 
 		positionVoxels(voxelData);
 		detector = new VoxelEnclosedSpaceDetector();
@@ -97,6 +92,45 @@ public class voxelTet : TetrahedronData
 					}
 				}
 			}
+		}
+	}
+
+	public void GenerateVoxelGridInt(int gridSize, float[] voxPos)
+	{
+		System.Random random = new System.Random();
+		bool allInactive = true; // Flag to check if all values in voxPos are <= 0
+
+		for (int x = 0; x < gridSize; x++)
+		{
+			for (int y = 0; y < gridSize; y++)
+			{
+				for (int z = 0; z < gridSize; z++)
+				{
+					// Calculate the corresponding index in the flat array
+					int index = x + (y * gridSize) + (z * gridSize * gridSize);
+
+					// Check to ensure index is within bounds of voxPos array
+					if (index < voxPos.Length)
+					{
+						float isActive = voxPos[index];
+
+						// If any value is greater than 0, allInactive should be false
+						if (isActive > 0)
+						{
+							allInactive = false;
+						}
+
+						// Assign true or false to the voxel based on isActive
+						voxelData[x, y, z] = isActive >= 0;
+					}
+				}
+			}
+		}
+
+		// If all values in voxPos are <= 0, set the voxel at (0, 0, 0) to true
+		if (allInactive)
+		{
+			voxelData[0, 0, 0] = true;
 		}
 	}
 

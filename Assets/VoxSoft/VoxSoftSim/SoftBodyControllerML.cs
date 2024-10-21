@@ -7,6 +7,7 @@ using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
 using UnityEngine.UIElements;
+using UnityEngine.Analytics;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)
@@ -27,7 +28,8 @@ public class SoftBodyControllerML : Agent
     public float volCompliance;
     public float dampingCoefficient;
 
-    public float pressure;
+    private float pressure;
+    public float pressureControl;
     public float scale;
 
     //Private
@@ -38,9 +40,79 @@ public class SoftBodyControllerML : Agent
     //What we use to grab the particles
     private bool simulate = true;
     private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
+    float[] voxPos = new float[343];
+    private int stepCount = 0;
+    private Vector3 startPos = new Vector3(0,0,0);
 
 
     public override void OnEpisodeBegin()
+    {
+        stepCount = 0;
+    }
+
+    public override void OnActionReceived(ActionBuffers actions)
+    {
+        if(stepCount == 0)
+        {
+            initialise(actions);
+            stepCount++;
+        } 
+        else
+        {
+            //Debug.Log("actions out = " + actions.ContinuousActions[voxPos.Length+1]);
+            float mappedValue = Mathf.Lerp(-100, 300, Mathf.InverseLerp(-1, 1, actions.ContinuousActions[voxPos.Length+1]));
+            pressure = mappedValue;
+        }
+    }
+
+    public override void CollectObservations(VectorSensor sensor)
+    {
+        if(stepCount != 0)
+        {
+            sensor.AddObservation(allSoftBodies[0].CalculateCenterOfMass());
+            AddReward(-0.005f);
+            float distance = (startPos - allSoftBodies[0].CalculateCenterOfMass()).magnitude;
+            AddReward(distance*500);
+        }
+        //sensor.AddObservation(Position of the thing);
+    }
+
+    public override void Heuristic(in ActionBuffers actionsOut)
+    {
+        ActionSegment<float> continuousActions = actionsOut.ContinuousActions;
+        continuousActions[voxPos.Length+1] = pressureControl;
+    }
+
+    private void Update()
+    {
+        if(stepCount != 0)
+        {
+            foreach (SoftBodySimulationVectors softBody in allSoftBodies)
+            {
+                softBody.MyUpdate();
+            }
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if(stepCount != 0)
+        {
+            Time.timeScale=0.45f;
+            if (!simulate)
+            {
+                return;
+            }
+
+            foreach (SoftBodySimulationVectors softBody in allSoftBodies)
+            {
+                softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
+                Debug.DrawRay(softBody.CalculateCenterOfMass(), new Vector3(0,1,0) , Color.blue);
+            }
+        }
+    }
+
+    private void initialise(ActionBuffers actions)
     {
         // Destroy the previous mesh if it exists
         if (meshI != null)
@@ -56,9 +128,14 @@ public class SoftBodyControllerML : Agent
         }
         allSoftBodies.Clear();
 
+        for (int i = 0; i < voxPos.Length; i++)
+        {
+            voxPos[i] = actions.ContinuousActions[i];
+        }
+
         // Reinitialize the random seed
         UnityEngine.Random.InitState(SEED);
-        TetrahedronData softBodyMesh = new voxelTet(scale);
+        TetrahedronData softBodyMesh = new voxelTet(scale, voxPos);
         voxelTet voxelSpecific = (voxelTet)softBodyMesh;
 
         // Instantiate a new soft body mesh
@@ -81,44 +158,7 @@ public class SoftBodyControllerML : Agent
 
             allSoftBodies.Add(softBodySim);
         }
-    }
-
-    public override void OnActionReceived(ActionBuffers actions)
-    {
-        //Debug.Log(actions.ContinuousActions[0]);
-        pressure = actions.ContinuousActions[0];
-        //Need to add in displacement of the soft robot
-    }
-
-    public override void CollectObservations(VectorSensor sensor)
-    {
-        //sensor.AddObservation(Position of the thing);
-        //SetReward(1f);
-    }
-
-    private void Update()
-    {
-        foreach (SoftBodySimulationVectors softBody in allSoftBodies)
-        {
-            softBody.MyUpdate();
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        Time.timeScale=0.15f;
-        //Timers.Reset();
-        if (!simulate)
-        {
-            return;
-        }
-
-        foreach (SoftBodySimulationVectors softBody in allSoftBodies)
-        {
-            softBody.MyFixedUpdate(numSubSteps,edgeCompliance, volCompliance, dampingCoefficient, pressure);
-            Debug.DrawRay(softBody.CalculateCenterOfMass(), new Vector3(0,1,0) , Color.blue);
-        }
-        //Timers.Display();
+        startPos = allSoftBodies[0].CalculateCenterOfMass();
     }
 
     private void OnDestroy()
