@@ -503,6 +503,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1192765454}
   - component: {fileID: 1192765456}
+  - component: {fileID: 1192765457}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -543,6 +544,58 @@ MonoBehaviour:
   numSubSteps: 13
   edgeCompliance: 0.009962135
   volCompliance: 0.0009569003
+  dampingCoefficient: 0.98
+  pressure: 0
+  scale: 0.005
+--- !u!114 &1192765457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192765452}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa5948adde091f4b9f07bbeafd6e59d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  softBodyMeshPrefabGO: {fileID: 2855842333996432679, guid: 48e11e5925bedb74c92b70ca0bc8b7a4,
+    type: 3}
+  cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
+  numSubSteps: 20
+  matchFitness:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  edgeCompliance: 0
+  volCompliance: 0
   dampingCoefficient: 0.98
   pressure: 0
   scale: 0.005

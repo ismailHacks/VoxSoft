@@ -311,7 +311,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		float alpha = edgeCompliance / (dt * dt);
 
-		for (int i = 0; i < numEdges; i++)
+		for (int i = numEdges - 1; i >= 0; i--)
 		{
 			//2 vertices per edge in the data structure, so multiply by 2 to get the correct vertex index
 			int id0 = tetEdgeIds[2 * i + 0];
@@ -354,7 +354,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			//lambda because |grad_Cn|^2 = 1 because if we move a particle 1 unit, the distance between the particles also grows with 1 unit, and w = w0 + w1
 			float lambda = -C / (wTot + alpha);
 			//float lambda = -C / (wTot);
-
 			
 			//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
 			pos[id0] += lambda * w0 * gradC;
@@ -362,24 +361,13 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
-	//TODO: This method is the bottleneck
 	//Solve volume constraint
-	//Constraint function is now defined as C = 6(V - V_rest). The 6 is to make the equation simpler because of volume
-	//4 gradients:
-	//grad_C1 = (x4-x2)x(x3-x2) <- direction perpendicular to the triangle opposite of p1 to maximally increase the volume when moving p1
-	//grad_C2 = (x3-x1)x(x4-x1)
-	//grad_C3 = (x4-x1)x(x2-x1)
-	//grad_C4 = (x2-x1)x(x3-x1)
-	//V = 1/6 * ((x2-x1)x(x3-x1))*(x4-x1)
-	//lambda =  6(V - V_rest) / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + w3 * |grad_C3|^2 + w4 * |grad_C4|^2 + alpha/dt^2)
-	//delta_xi = -lambda * w_i * grad_Ci
-	//Which was shown here https://www.youtube.com/watch?v=jrociOAYqxA (13:50)
 	private void SolveVolumes(float dt, float volumeCompliance)
 	{
 		float alpha = volumeCompliance / (dt * dt);
 
 		//For each tetra
-		for (int i = 0; i < numTets; i++)
+		for (int i = numTets - 1; i >= 0; i--)
 		{
 			float wTimesGrad = 0f;
 		
@@ -419,14 +407,13 @@ public class SoftBodySimulationVectors : IGrabbable
 
 			float C = 6*(vol - restVol);
 			float lambda = -C / (wTimesGrad + alpha);
-			
+
             //Move each vertex
             for (int j = 0; j < 4; j++)
             {
                 int id = tetIds[4 * i + j];
 
 				//Move the vertices x = x + deltaX where deltaX = lambda * w * gradC
-				//pos[id] += (lambda * invMass[id] * gradients[j]) + (volScale * gradients[j]); //Added (volScale * gradients[j]) to be able to control volume increase
 				pos[id] += lambda * invMass[id] * gradients[j]; //Added (volScale * gradients[j]) to be able to control volume increase
 			}
 		}

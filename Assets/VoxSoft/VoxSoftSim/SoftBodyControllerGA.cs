@@ -95,17 +95,19 @@ public class SoftBodyControllerGA : MonoBehaviour
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.ForceSoftware);
 
         random = new System.Random();
-        ga = new GeneticAlgorithm<float>(populationSize, 3, random, getRandomNo, FitnessFunction, elitism, mutationRate);
+        ga = new GeneticAlgorithm<float>(populationSize, 2, random, getRandomNo, FitnessFunction, elitism, mutationRate);
+        //ga = new GeneticAlgorithm<float>(populationSize, 3, random, getRandomNo, FitnessFunction, elitism, mutationRate);
+
 
         for (int i = 0; i < populationSize; i++) 
         {
-            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.01f, ga.Population[i].Genes[0]);
-            outputGenesVolC[i] = scaleVal(0f,1f,0f,0.001f, ga.Population[i].Genes[1]);
-            outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
+            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[0]);
+            outputGenesVolC[i] = scaleVal(0f,1f,0f,0f, ga.Population[i].Genes[1]);
+            //outputGenesStep[i] = scaleVal(0f,1f,150f,150f, ga.Population[i].Genes[2]);
         }
         edgeCompliance = outputGenesEdgeC[0];
         volCompliance = outputGenesVolC[0];
-        numSubSteps = (int)outputGenesStep[0];
+        //numSubSteps = (int)outputGenesStep[0];
     }
 
     private void Update()
@@ -165,7 +167,7 @@ public class SoftBodyControllerGA : MonoBehaviour
                 addRecordGA(matchFitness, (Application.dataPath  + exportMatchFitness));
                 addRecordGA(outputGenesEdgeC, (Application.dataPath  + exportEdgeC));
                 addRecordGA(outputGenesVolC, (Application.dataPath  + exportVolC));
-                addRecordGA(outputGenesStep, (Application.dataPath  + exportStep));
+                //addRecordGA(outputGenesStep, (Application.dataPath  + exportStep));
 
                 ga.NewGeneration();
                 
@@ -173,18 +175,18 @@ public class SoftBodyControllerGA : MonoBehaviour
                 {
                     outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.01f, ga.Population[i].Genes[0]);
                     outputGenesVolC[i] = scaleVal(0f,1f,0f,0.001f, ga.Population[i].Genes[1]);
-                    outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
+                    //outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
                 }
                 
                 edgeCompliance = outputGenesEdgeC[DNAno];
                 volCompliance = outputGenesVolC[DNAno];
-                numSubSteps = (int)outputGenesStep[DNAno];
+                //numSubSteps = (int)outputGenesStep[DNAno];
             }
              else
             {
                 edgeCompliance = outputGenesEdgeC[DNAno];
                 volCompliance = outputGenesVolC[DNAno];
-                numSubSteps = (int)outputGenesStep[DNAno];
+                //numSubSteps = (int)outputGenesStep[DNAno];
             }
         }
     }
