@@ -2,12 +2,12 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UserInteraction;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
 using UnityEngine.UIElements;
 using UnityEngine.Analytics;
+using Google.Protobuf.WellKnownTypes;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)
@@ -18,7 +18,6 @@ public class SoftBodyControllerML : Agent
     GameObject meshI;
     public Texture2D cursorTexture;
     public int numSubSteps;
-    private int episodeCount = 0;
 
 	//Soft body behavior settings
 	//Compliance (alpha) is the inverse of physical stiffness (k)
@@ -43,10 +42,13 @@ public class SoftBodyControllerML : Agent
     float[] voxPos = new float[343];
     private int stepCount = 0;
     private Vector3 startPos = new Vector3(0,0,0);
+    private int valueTrack = 0;
 
 
     public override void OnEpisodeBegin()
     {
+        Debug.Log("OnEpisodeBegin - " + valueTrack);
+        valueTrack++;
         stepCount = 0;
     }
 
@@ -54,6 +56,8 @@ public class SoftBodyControllerML : Agent
     {
         if(stepCount == 0)
         {
+            Debug.Log("OnActionReceived - " + valueTrack);
+            valueTrack++;
             initialise(actions);
             stepCount++;
         } 
@@ -69,9 +73,13 @@ public class SoftBodyControllerML : Agent
     {
         if(stepCount != 0)
         {
-            sensor.AddObservation(allSoftBodies[0].CalculateCenterOfMass());
+            //sensor.AddObservation(allSoftBodies[0].CalculateCenterOfMass());
+            Debug.Log("CollectObservations - " + valueTrack);
+            valueTrack++;
+            sensor.AddObservation(new Vector3(0,0,0));
             AddReward(-0.005f);
-            float distance = (startPos - allSoftBodies[0].CalculateCenterOfMass()).magnitude;
+            float distance = (startPos.y - allSoftBodies[0].CalculateCenterOfMass().y);
+            //float distance = (startPos - startPos).magnitude;
             AddReward(distance*500);
         }
         //sensor.AddObservation(Position of the thing);
@@ -98,7 +106,7 @@ public class SoftBodyControllerML : Agent
     {
         if(stepCount != 0)
         {
-            Time.timeScale=0.45f;
+            Time.timeScale=0.15f;
             if (!simulate)
             {
                 return;
@@ -114,11 +122,15 @@ public class SoftBodyControllerML : Agent
 
     private void initialise(ActionBuffers actions)
     {
+        Debug.Log("initialise - " + valueTrack);
+        valueTrack++;
         // Destroy the previous mesh if it exists
         if (meshI != null)
         {
+            Debug.Log("Destroying Mesh");
             Destroy(meshI);
         }
+
 
         // Destroy any existing soft body simulations and clear the list
         foreach (SoftBodySimulationVectors softBody in allSoftBodies)
@@ -126,15 +138,18 @@ public class SoftBodyControllerML : Agent
             Mesh mesh = softBody.MyOnDestroy();
             Destroy(mesh);
         }
+
         allSoftBodies.Clear();
 
         for (int i = 0; i < voxPos.Length; i++)
         {
             voxPos[i] = actions.ContinuousActions[i];
         }
+        
+        Debug.Log("VoxPos = " + voxPos[1]);
 
         // Reinitialize the random seed
-        UnityEngine.Random.InitState(SEED);
+        //UnityEngine.Random.InitState(SEED);
         TetrahedronData softBodyMesh = new voxelTet(scale, voxPos);
         voxelTet voxelSpecific = (voxelTet)softBodyMesh;
 
@@ -158,7 +173,8 @@ public class SoftBodyControllerML : Agent
 
             allSoftBodies.Add(softBodySim);
         }
-        startPos = allSoftBodies[0].CalculateCenterOfMass();
+        //startPos = allSoftBodies[0].CalculateCenterOfMass();
+        startPos = new Vector3(0,0,0);
     }
 
     private void OnDestroy()

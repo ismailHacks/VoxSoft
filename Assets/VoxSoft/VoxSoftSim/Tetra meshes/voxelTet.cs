@@ -97,7 +97,6 @@ public class voxelTet : TetrahedronData
 
 	public void GenerateVoxelGridInt(int gridSize, float[] voxPos)
 	{
-		System.Random random = new System.Random();
 		bool allInactive = true; // Flag to check if all values in voxPos are <= 0
 
 		for (int x = 0; x < gridSize; x++)

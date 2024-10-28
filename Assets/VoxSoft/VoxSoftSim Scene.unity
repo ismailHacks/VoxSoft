@@ -564,15 +564,15 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 20
+  MaxStep: 30
   softBodyMeshPrefabGO: {fileID: 2855842333996432679, guid: 48e11e5925bedb74c92b70ca0bc8b7a4,
     type: 3}
   cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
-  numSubSteps: 100
+  numSubSteps: 50
   edgeCompliance: 0.1
   volCompliance: 0
   dampingCoefficient: 0.99
-  pressure: 0
+  pressureControl: 0
   scale: 0.005
 --- !u!114 &1192765458
 MonoBehaviour:
@@ -588,7 +588,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_BrainParameters:
     VectorObservationSize: 3
-    NumStackedVectorObservations: 1
+    NumStackedVectorObservations: 5
     m_ActionSpec:
       m_NumContinuousActions: 345
       BranchSizes: 
@@ -596,9 +596,9 @@ MonoBehaviour:
     VectorActionDescriptions: []
     VectorActionSpaceType: 1
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 0}
+  m_Model: {fileID: 5022602860645237092, guid: 7688da2e1c7494012af6a18f87ac9efe, type: 3}
   m_InferenceDevice: 0
-  m_BehaviorType: 1
+  m_BehaviorType: 2
   m_BehaviorName: SoftBodyControllerML
   TeamId: 0
   m_UseChildSensors: 1
@@ -617,7 +617,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DecisionPeriod: 5
+  DecisionPeriod: 10
   DecisionStep: 0
   TakeActionsBetweenDecisions: 1
 --- !u!1660057539 &9223372036854775807

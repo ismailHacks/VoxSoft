@@ -81,14 +81,14 @@ public class VoxelEnclosedSpaceDetector : MonoBehaviour
         new Vector3Int(0, -1, 0),  // Down
         new Vector3Int(0, 0, 1),   // Forward
         new Vector3Int(0, 0, -1),  // Backward
-        new Vector3Int(1, 1, 1),
+       /* new Vector3Int(1, 1, 1),
         new Vector3Int(1, 1, -1),
         new Vector3Int(-1, 1, 1),
         new Vector3Int(-1, 1, -1),
         new Vector3Int(1, -1, 1),
         new Vector3Int(1, -1, -1),
         new Vector3Int(-1, -1, 1),
-        new Vector3Int(-1, -1, -1)
+        new Vector3Int(-1, -1, -1)*/
     };
 
     // Directions for neighbor checking (only face directions)
