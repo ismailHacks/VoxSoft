@@ -33,7 +33,7 @@ public class SoftBodyControllerGA : MonoBehaviour
     public float[] matchFitness = new float[populationSize];
 
     int counter = 0;
-    private int counterLimit = 5000;
+    private int counterLimit = 3000;
 
     private float currentBestFitness = 0f;
     private int generation = 0;
@@ -101,8 +101,8 @@ public class SoftBodyControllerGA : MonoBehaviour
 
         for (int i = 0; i < populationSize; i++) 
         {
-            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[0]);
-            outputGenesVolC[i] = scaleVal(0f,1f,0f,0f, ga.Population[i].Genes[1]);
+            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.3f, ga.Population[i].Genes[0]);
+            outputGenesVolC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[1]);
             //outputGenesStep[i] = scaleVal(0f,1f,150f,150f, ga.Population[i].Genes[2]);
         }
         edgeCompliance = outputGenesEdgeC[0];
@@ -173,8 +173,8 @@ public class SoftBodyControllerGA : MonoBehaviour
                 
                 for (int i = 0; i < populationSize; i++) 
                 {
-                    outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.01f, ga.Population[i].Genes[0]);
-                    outputGenesVolC[i] = scaleVal(0f,1f,0f,0.001f, ga.Population[i].Genes[1]);
+                    outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.3f, ga.Population[i].Genes[0]);
+                    outputGenesVolC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[1]);
                     //outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
                 }
                 
