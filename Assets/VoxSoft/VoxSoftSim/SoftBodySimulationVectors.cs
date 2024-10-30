@@ -28,12 +28,12 @@ public class SoftBodySimulationVectors : IGrabbable
 	//public static int[] beamLowerDisplacementPoss = new int[] {2, 10, 18, 26, 34, 42, 50, 58, 66}; //For 9 Voxels
 
 	//public static float[] beamLowerDisplacementReal = new float[] {-0.002807778f, -0.010065723f, -0.018854033f, -0.029163674f, -0.039708201f, -0.050758633f, -0.061807259f, -0.073788197f, -0.085266843f}; //EcoFlex 00-20
-	public static float[] beamLowerDisplacementReal = new float[] {-0.002396238f, -0.008284655f, -0.016026766f, -0.024868433f, -0.034824125f, -0.045137897f, -0.055279863f, -0.066024053f, -0.07699792f}; //Ecoflex 00-30
-	//public static float[] beamLowerDisplacementReal = new float[] {-0.001433387f, -0.005749836f, -0.01109427f, -0.01852001f, -0.025829921f, -0.032926272f, -0.041255118f, -0.049569486f, -0.057872995f}; //Ecoflex 00-50
+	//public static float[] beamLowerDisplacementReal = new float[] {-0.002396238f, -0.008284655f, -0.016026766f, -0.024868433f, -0.034824125f, -0.045137897f, -0.055279863f, -0.066024053f, -0.07699792f}; //Ecoflex 00-30
+	public static float[] beamLowerDisplacementReal = new float[] {-0.001433387f, -0.005749836f, -0.01109427f, -0.01852001f, -0.025829921f, -0.032926272f, -0.041255118f, -0.049569486f, -0.057872995f}; //Ecoflex 00-50
 
 	//public static float[] beamHorizontalDisplacementReal = new float[] {0.005220943f, 0.011418510f, 0.015991443f, 0.019721346f, 0.022815523f, 0.025690113f, 0.027938190f, 0.030387426f, 0.032762955f}; //EcoFlex 00-20
-	public static float[] beamHorizontalDisplacementReal = new float[] {0.006705169f, 0.014281319f, 0.020839020f, 0.026049544f, 0.031029649f, 0.035349221f, 0.040049752f, 0.044051348f, 0.048300260f}; //Ecoflex 00-30
-	//public static float[] beamHorizontalDisplacementReal = new float[] {0.007641537f, 0.016321729f, 0.023991086f, 0.032161224f, 0.039223154f, 0.045399445f, 0.052629847f, 0.059384199f, 0.066157098f}; //Ecoflex 00-50
+	//public static float[] beamHorizontalDisplacementReal = new float[] {0.006705169f, 0.014281319f, 0.020839020f, 0.026049544f, 0.031029649f, 0.035349221f, 0.040049752f, 0.044051348f, 0.048300260f}; //Ecoflex 00-30
+	public static float[] beamHorizontalDisplacementReal = new float[] {0.007641537f, 0.016321729f, 0.023991086f, 0.032161224f, 0.039223154f, 0.045399445f, 0.052629847f, 0.059384199f, 0.066157098f}; //Ecoflex 00-50
 
 	public static float[] beamZDisplacementReal = new float[] {0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f};
 
