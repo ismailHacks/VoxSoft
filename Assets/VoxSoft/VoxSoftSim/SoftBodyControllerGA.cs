@@ -101,7 +101,7 @@ public class SoftBodyControllerGA : MonoBehaviour
 
         for (int i = 0; i < populationSize; i++) 
         {
-            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.3f, ga.Population[i].Genes[0]);
+            outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.5f, ga.Population[i].Genes[0]);
             outputGenesVolC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[1]);
             //outputGenesStep[i] = scaleVal(0f,1f,150f,150f, ga.Population[i].Genes[2]);
         }
@@ -173,7 +173,7 @@ public class SoftBodyControllerGA : MonoBehaviour
                 
                 for (int i = 0; i < populationSize; i++) 
                 {
-                    outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.3f, ga.Population[i].Genes[0]);
+                    outputGenesEdgeC[i] = scaleVal(0f,1f,0f,0.5f, ga.Population[i].Genes[0]);
                     outputGenesVolC[i] = scaleVal(0f,1f,0f,0.1f, ga.Population[i].Genes[1]);
                     //outputGenesStep[i] = scaleVal(0f,1f,10f,100f, ga.Population[i].Genes[2]);
                 }
