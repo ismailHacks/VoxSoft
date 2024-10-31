@@ -42,7 +42,7 @@ Soft robotics is a rapidly growing field focusing on creating robots with flexib
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/yourusername/soft-robot-designer.git
+   git clone https://github.com/ismailHacks/VoxSoft/tree/main
 
 2.	Open the Project in Unity
 	•	Launch Unity Hub.
