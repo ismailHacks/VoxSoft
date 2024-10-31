@@ -4,8 +4,8 @@ using UnityEngine;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int cubicSize = 7;
-	private static int noVoxels = 343;
+	private static int cubicSize = 10;
+	private static int noVoxels = 298;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 
@@ -18,6 +18,8 @@ public class voxelTet : TetrahedronData
 	public bool[,,] voxelData = new bool[cubicSize, cubicSize, cubicSize];
 	public Dictionary<Vector3Int, int> voxelPositionToID = new Dictionary<Vector3Int, int>();
 	public Dictionary<string, List<int>> faceDirectionToVoxelIDs;
+	public List<int> bottomVoxelIDs = new List<int>();
+	public List<int> topVoxelIDs = new List<int>();
 	public VoxelEnclosedSpaceDetector detector;
 
 	//Getters
@@ -28,20 +30,25 @@ public class voxelTet : TetrahedronData
 	public override int[] GetVertexMapping => vertexMapping;
 	private int voxelID = 0;
 
-	public voxelTet(float scale, float[] voxPos)
+	public voxelTet(float scale, float[] voxPos, int width, int height, int wallThickness)
 	{
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
 		//makeCuboid(0,0,0,7,7,7,true);
 		//makeCuboid(1,1,1,5,5,5,false);
-		GenerateVoxelGridInt(cubicSize, voxPos);
+		//makeCylinder(3,0,3,4,3,true);
+		makeCylindricalActuator(4,0,4, width, wallThickness, 1, height);
+		//GenerateVoxelGridInt(cubicSize, voxPos);
 
 		positionVoxels(voxelData);
 		detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
 
-		//Debug.Log("Number of Voxels = " + globalVoxelCount);
+		FindBottomVoxels();
+		FindTopVoxels();
+
+		Debug.Log("Number of Voxels = " + globalVoxelCount);
 		combineVoxels();
 		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
@@ -213,9 +220,9 @@ public class voxelTet : TetrahedronData
 	{
 		for (int k = 0; k < height; k++)
 		{
-			for (int i = 0; i < 2*radius; i++)
+			for (int i = -(int)radius; i < radius; i++)
 			{
-				for (int j = 0; j < 2*radius; j++)
+				for (int j = -(int)radius; j < radius; j++)
 				{
 					if(Mathf.Sqrt(i*i+j*j)<radius)
 					{
@@ -398,6 +405,52 @@ public class voxelTet : TetrahedronData
 		0,6,1, 0,2,6, 1,6,2, 0,1,2, //Outer Tetrahedron 3
 		0,7,3, 0,1,7, 1,3,7, 0,3,1  //Outer Tetrahedron 4
 	};
+
+	private void FindBottomVoxels()
+	{
+		int minY = int.MaxValue;
+
+		// Find the minimum Y value among all voxel positions
+		foreach (var position in voxelPositionToID.Keys)
+		{
+			if (position.y < minY)
+			{
+				minY = position.y;
+			}
+		}
+
+		// Collect voxel IDs that are at the minimum Y position
+		foreach (var kvp in voxelPositionToID)
+		{
+			if (kvp.Key.y == minY)
+			{
+				bottomVoxelIDs.Add(kvp.Value);
+			}
+		}
+	}
+
+	private void FindTopVoxels()
+	{
+		int maxY = int.MinValue;
+
+		// Find the maximum Y value among all voxel positions
+		foreach (var position in voxelPositionToID.Keys)
+		{
+			if (position.y > maxY)
+			{
+				maxY = position.y;
+			}
+		}
+
+		// Collect voxel IDs that are at the maximum Y position
+		foreach (var kvp in voxelPositionToID)
+		{
+			if (kvp.Key.y == maxY)
+			{
+				topVoxelIDs.Add(kvp.Value);
+			}
+		}
+	}
 
 	public int[] vertexMap()
 		{

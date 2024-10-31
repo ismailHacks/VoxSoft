@@ -150,7 +150,7 @@ public class SoftBodyControllerML : Agent
 
         // Reinitialize the random seed
         //UnityEngine.Random.InitState(SEED);
-        TetrahedronData softBodyMesh = new voxelTet(scale, voxPos);
+        TetrahedronData softBodyMesh = new voxelTet(scale, voxPos, 0,0,0);
         voxelTet voxelSpecific = (voxelTet)softBodyMesh;
 
         // Instantiate a new soft body mesh

@@ -506,6 +506,7 @@ GameObject:
   - component: {fileID: 1192765458}
   - component: {fileID: 1192765457}
   - component: {fileID: 1192765459}
+  - component: {fileID: 1192765460}
   m_Layer: 0
   m_Name: Controller
   m_TagString: Untagged
@@ -543,9 +544,9 @@ MonoBehaviour:
   softBodyMeshPrefabGO: {fileID: 2855842333996432679, guid: 48e11e5925bedb74c92b70ca0bc8b7a4,
     type: 3}
   cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
-  numSubSteps: 50
-  edgeCompliance: 0.1
-  volCompliance: 0
+  numSubSteps: 150
+  edgeCompliance: 0.145749
+  volCompliance: 0.058146
   dampingCoefficient: 0.99
   pressure: 0
   scale: 0.005
@@ -556,7 +557,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1192765452}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d9bdb608bd8434abeba98053abdaa1db, type: 3}
   m_Name: 
@@ -620,6 +621,27 @@ MonoBehaviour:
   DecisionPeriod: 10
   DecisionStep: 0
   TakeActionsBetweenDecisions: 1
+--- !u!114 &1192765460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1192765452}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14b42e7fa20df4fc8b2898eac00f2d67, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  softBodyMeshPrefabGO: {fileID: 2855842333996432679, guid: 48e11e5925bedb74c92b70ca0bc8b7a4,
+    type: 3}
+  cursorTexture: {fileID: 2800000, guid: 9502229508e68b04da8f92de5b1bd292, type: 3}
+  numSubSteps: 150
+  edgeCompliance: 0.145749
+  volCompliance: 0.058146
+  dampingCoefficient: 0.99
+  pressure: 0
+  scale: 0.005
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

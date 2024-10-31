@@ -43,7 +43,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	private bool simulate = true;
 	//Environment collision data 
 	private readonly float floorHeight = 0f;
-	private Vector3 halfPlayGroundSize = new Vector3(5f, 8f, 5f);
+	public float playgrounfHeight = 0.03f;
+	//private Vector3 halfPlayGroundSize = new Vector3(5f, 0.03f, 5f);
+	private Vector3 halfPlayGroundSize = new Vector3(5f, 1f, 5f);
+
 
 	//Grabbing with mouse to move mesh around
 	//The id of the particle we grabed with mouse
@@ -55,6 +58,9 @@ public class SoftBodySimulationVectors : IGrabbable
 	public int GetGrabId => grabId;
 
 	Dictionary<string, List<int>> faceDirections;
+	public List<int> bottomVoxels = new List<int>();
+	public List<int> topVoxels = new List<int>();
+	private HashSet<int> topVertexIDs = new HashSet<int>();
 	public voxelTet myVoxelTet;
 
 	private readonly HashSet<int> usedVertices;
@@ -111,6 +117,21 @@ public class SoftBodySimulationVectors : IGrabbable
     public void pressurePoints(float scale)
     {
        	faceDirections = myVoxelTet.faceDirectionToVoxelIDs;
+		bottomVoxels = myVoxelTet.bottomVoxelIDs;
+		topVoxels = myVoxelTet.topVoxelIDs;
+
+		// Initialize topVertexIDs
+		topVertexIDs = new HashSet<int>();
+		int[] vertexMapping = tetraData.GetVertexMapping;
+
+		foreach (int voxID in topVoxels)
+		{
+			for (int i = 0; i < 8; i++)
+			{
+				int vertexID = vertexMapping[8 * voxID + i];
+				topVertexIDs.Add(vertexID);
+			}
+		}
     }
 
     //Fill the data structures needed or soft body physics
@@ -167,7 +188,6 @@ public class SoftBodySimulationVectors : IGrabbable
 		{
 			invMass[i] = 1/pMass;
 		}
-		
 		
 		//Rest edge length
 		for (int i = 0; i < restEdgeLengths.Length; i++)
@@ -278,6 +298,9 @@ public class SoftBodySimulationVectors : IGrabbable
 		SolvePressureForce(dt, pressure, faceDirections["Front"].ToArray(), voxelTet.voxelPositiveZ);
 		SolvePressureForce(dt, pressure, faceDirections["Back"].ToArray(), voxelTet.voxelNegativeZ);*/
 
+		lockFaces(bottomVoxels.ToArray(), voxelTet.voxelPositiveY);
+		//lockFaces(topVoxels.ToArray(), voxelTet.voxelNegativeY);
+
 		if (faceDirections.ContainsKey("Right"))
 		{
 			//Debug.Log("Pressurising");
@@ -310,7 +333,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	}
 
 	//Solve distance constraint
-	private void SolveEdges(float dt, float edgeCompliance)
+	private void SolveEdges2(float dt, float edgeCompliance)
 	{
 		float alpha = edgeCompliance / (dt * dt);
 
@@ -364,8 +387,56 @@ public class SoftBodySimulationVectors : IGrabbable
 		}
 	}
 
+	private void SolveEdges(float dt, float edgeCompliance)
+	{
+		for (int i = numEdges - 1; i >= 0; i--)
+		{
+			int id0 = tetEdgeIds[2 * i + 0];
+			int id1 = tetEdgeIds[2 * i + 1];
+
+			float w0 = invMass[id0];
+			float w1 = invMass[id1];
+
+			float wTot = w0 + w1;
+
+			if (wTot == 0f)
+			{
+				continue;
+			}
+
+			// Determine compliance for this edge
+			float alpha;
+			if (topVertexIDs.Contains(id0) && topVertexIDs.Contains(id1))
+			{
+				// Both vertices are in top voxels - set compliance to zero
+				alpha = 0f;
+			}
+			else
+			{
+				alpha = edgeCompliance / (dt * dt);
+			}
+
+			Vector3 id0_minus_id1 = pos[id0] - pos[id1];
+			float l = Vector3.Magnitude(id0_minus_id1);
+
+			if (l == 0f)
+			{
+				continue;
+			}
+
+			Vector3 gradC = id0_minus_id1 / l;
+			float l_rest = restEdgeLengths[i];
+			float C = l - l_rest;
+
+			float lambda = -C / (wTot + alpha);
+
+			pos[id0] += lambda * w0 * gradC;
+			pos[id1] += -lambda * w1 * gradC;
+		}
+	}
+
 	//Solve volume constraint
-	private void SolveVolumes(float dt, float volumeCompliance)
+	private void SolveVolumes2(float dt, float volumeCompliance)
 	{
 		float alpha = volumeCompliance / (dt * dt);
 
@@ -421,7 +492,70 @@ public class SoftBodySimulationVectors : IGrabbable
 			}
 		}
 	}
-	
+
+	private void SolveVolumes(float dt, float volumeCompliance)
+	{
+		for (int i = numTets - 1; i >= 0; i--)
+		{
+			int id0 = tetIds[4 * i + 0];
+			int id1 = tetIds[4 * i + 1];
+			int id2 = tetIds[4 * i + 2];
+			int id3 = tetIds[4 * i + 3];
+
+			bool isTopTet = topVertexIDs.Contains(id0) && topVertexIDs.Contains(id1) &&
+							topVertexIDs.Contains(id2) && topVertexIDs.Contains(id3);
+
+			float alpha;
+			if (isTopTet)
+			{
+				// All vertices are in top voxels - set compliance to zero
+				alpha = 0f;
+			}
+			else
+			{
+				alpha = volumeCompliance / (dt * dt);
+			}
+
+			float wTimesGrad = 0f;
+
+			for (int j = 0; j < 4; j++)
+			{
+				int idThis = tetIds[4 * i + j];
+
+				// The 3 opposite vertices ids
+				int idA = tetIds[4 * i + TetrahedronData.volIdOrder[j][0]];
+				int idB = tetIds[4 * i + TetrahedronData.volIdOrder[j][1]];
+				int idC = tetIds[4 * i + TetrahedronData.volIdOrder[j][2]];
+
+				Vector3 idB_minus_idA = pos[idB] - pos[idA];
+				Vector3 idC_minus_idA = pos[idC] - pos[idA];
+
+				Vector3 gradC = Vector3.Cross(idB_minus_idA, idC_minus_idA);
+
+				gradients[j] = gradC;
+
+				wTimesGrad += invMass[idThis] * Vector3.SqrMagnitude(gradC);
+			}
+
+			if (wTimesGrad == 0f)
+			{
+				continue;
+			}
+
+			float vol = GetTetVolume(i);
+			float restVol = restVolumes[i];
+
+			float C = 6 * (vol - restVol);
+			float lambda = -C / (wTimesGrad + alpha);
+
+			for (int j = 0; j < 4; j++)
+			{
+				int id = tetIds[4 * i + j];
+
+				pos[id] += lambda * invMass[id] * gradients[j];
+			}
+		}
+	}
 	//Used to lock specific faces in space.
 	private void lockFaces(int[] voxIDs, int[] face)
 	{
