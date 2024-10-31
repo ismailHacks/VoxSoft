@@ -46,12 +46,12 @@ Soft robotics is a rapidly growing field focusing on creating robots with flexib
 ### Usage
 
 Open the VoxSoftSim Scene and enable the Soft Body Controller. Default: 
-Num Sub Steps = 50
-Edge Compliance = 0.1
-Vol Compliance = 0
-Damping Coefficient = 0.99
-Pressure = 0
-Scale = 0.005
+•	Num Sub Steps = 50
+•	Edge Compliance = 0.1
+•	Vol Compliance = 0
+•	Damping Coefficient = 0.99
+•	Pressure = 0
+•	Scale = 0.005
 
 
 ### Acknowledgments
