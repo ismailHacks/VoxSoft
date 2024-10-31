@@ -33,22 +33,14 @@ public class voxelTet : TetrahedronData
 		voxelScale = scale;
 		float startTime = Time.realtimeSinceStartup;
 
-		//makeCylinder(4,0,4,3,3,true);
-		//GenerateRandomVoxelGrid(cubicSize);
-
 		makeCuboid(0,0,0,10,10,10,true);
 		makeCuboid(1,1,1,8,8,8,false);
-
-		//makeCuboid(4,4,4,3,3,3,true);
-		//makeCuboid(5,5,5,1,1,1,false);
 
 		positionVoxels(voxelData);
 		detector = new VoxelEnclosedSpaceDetector();
     	faceDirectionToVoxelIDs = detector.DetectEnclosedSpaces(voxelData, voxelPositionToID);
 
-		//Debug.Log("Number of Voxels = " + globalVoxelCount);
 		combineVoxels();
-		//Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
 	}
 
 	private void positionVoxels(bool[,,] voxelData)

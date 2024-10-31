@@ -2,7 +2,6 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UserInteraction;
 
 
 //Simple and unbreakable simulation of soft bodies using Extended Position Based Dynamics (XPBD)

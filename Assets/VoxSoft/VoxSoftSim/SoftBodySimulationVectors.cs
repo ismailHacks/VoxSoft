@@ -119,12 +119,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			pos[i / 3] = new Vector3(x, y, z);
 		}
 
-		//Particle previous position
-		//Not needed because is already set to 0s
-
-		//Particle velocity
-		//Not needed because is already set to 0s
-
 		//Rest volume
 		for (int i = 0; i < numTets; i++)
 		{
@@ -139,14 +133,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			float vol = restVolumes[i];
 			float tetMass = vol*density;
 			totalMass += tetMass;
-
-			//The mass connected to a particle in a tetra is roughly volume / 4
-			//float pInvMass = vol > 0f ? 1f / (tetMass/4) : 0f;
-
-			/*invMass[tetIds[4 * i + 0]] += pInvMass;
-			invMass[tetIds[4 * i + 1]] += pInvMass;
-			invMass[tetIds[4 * i + 2]] += pInvMass;
-			invMass[tetIds[4 * i + 3]] += pInvMass;*/
 		}
 		totalMass = totalMass/2;
 		float pMass = totalMass/numParticles;
@@ -228,7 +214,6 @@ public class SoftBodySimulationVectors : IGrabbable
 			HandleEnvironmentCollision();
 			PostSolve(sdt, dampingCoefficient);
 		}
-		//debugLog();
 	}
 
 	//Move the particles and handle environment collision
@@ -250,16 +235,6 @@ public class SoftBodySimulationVectors : IGrabbable
 	//Handle the soft body physics
 	private void SolveConstraints(float dt, float edgeCompliance, float volCompliance, float pressure)
 	{
-		//Constraints
-		//Enforce constraints by moving each vertex: x = x + deltaX
-		//- Correction vector: deltaX = lambda * w * gradC
-		//- Inverse mass: w
-		//- lambda = -C / (w1 * |grad_C1|^2 + w2 * |grad_C2|^2 + ... + wn * |grad_C|^2 + (alpha / dt^2)) where 1, 2, ... n is the number of participating particles in the constraint.
-		//		- n = 2 if we have an edge, n = 4 if we have a tetra
-		//		- |grad_C1|^2 is the squared length
-		//		- (alpha / dt^2) is what makes the costraint soft. Remove it and you get a hard constraint
-		//- Compliance (inverse stiffness): alpha
-
 		//lockFaces(faceDirections["Bottom"].ToArray(), voxelTet.voxelPositiveY);
 		SolvePressureForce(dt, pressure, faceDirections["Right"].ToArray(), voxelTet.voxelPositiveX);
 		SolvePressureForce(dt, pressure, faceDirections["Left"].ToArray(), voxelTet.voxelNegativeX);
@@ -416,7 +391,6 @@ public class SoftBodySimulationVectors : IGrabbable
                 pos[i] += vel[i] * dt;
             }
         }
-		//Debug.DrawRay(pos[10], gravity, Color.blue);
     }
 
 	//Update the velocity after the constrain has been handled
