@@ -10,12 +10,6 @@ Welcome to the **VoxSoft**, a Unity project that enables anyone to create volume
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Usage](#usage)
-  - [Creating Volumetric Meshes](#creating-volumetric-meshes)
-  - [Simulating with XPBD](#simulating-with-xpbd)
-  - [Design Optimization](#design-optimization)
-- [Examples](#examples)
-- [Contributing](#contributing)
-- [License](#license)
 - [Acknowledgments](#acknowledgments)
 
 ## Introduction
@@ -49,7 +43,7 @@ Soft robotics is a rapidly growing field focusing on creating robots with flexib
 	•	Click “Open” and select the cloned project folder.
 	•	Allow Unity to import all assets.
 
-Usage
+### Usage
 
 Open the VoxSoftSim Scene and enable the Soft Body Controller. Default: 
 Num Sub Steps = 50
@@ -60,7 +54,7 @@ Pressure = 0
 Scale = 0.005
 
 
-Acknowledgments
+### Acknowledgments
 
 	•	Unity Technologies for the game engine.
 	•	Researchers and developers who contributed to the development of XPBD.
