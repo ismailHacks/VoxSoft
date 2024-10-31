@@ -35,6 +35,13 @@ public class SoftBodyControllerA : MonoBehaviour
     private readonly Color[] colors = new Color[] { Color.green, Color.blue, Color.red, Color.yellow, Color.cyan };
     float[] voxPos = new float[343];
     private int counter = 0;
+    private int counterMax = 1000;
+
+
+    private string exportWidth = "/Data/Width";
+    private string exportHeight = "/Data/Heigh";
+    private string exportWallThickness = "/Data/WallThickness";
+    private string exportFitness = "/Data/Fitness";
 
     private void Start()
     {
@@ -158,23 +165,27 @@ public class SoftBodyControllerA : MonoBehaviour
 
     private void FixedUpdate()
     {
-        counter++;
-        if (counter > 5)
+        if (counter > counterMax)
         {
-            reinitialise(i + 2, j + 2, k + 2); //width, height, Wall Thickness
+            addRecord(i+2, (Application.dataPath + exportWidth));
+            addRecord(j+2, (Application.dataPath + exportHeight));
+            addRecord(k+1, (Application.dataPath + exportWallThickness));
+            addRecord(allSoftBodies[0].GetAverageTopVoxelsVerticalDisplacement(), (Application.dataPath + exportFitness));
+
+            reinitialise(i + 2, j + 2, k + 1); //width, height, Wall Thickness
             counter = 0;
 
             // Increment k and handle carry-over
             k++;
-            if (k >= 2)
+            if (k >= 3)
             {
                 k = 0;
                 j++;
-                if (j >= 3)
+                if (j >= 6)
                 {
                     j = 0;
                     i++;
-                    if (i >= 3)
+                    if (i >= 9)
                     {
                         // Reset or handle completion
                         //i = 0;
@@ -194,6 +205,7 @@ public class SoftBodyControllerA : MonoBehaviour
         {
             softBody.MyFixedUpdate(numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
         }
+        counter++;
     }
 
     private void OnDestroy()
@@ -202,6 +214,22 @@ public class SoftBodyControllerA : MonoBehaviour
         {
             Mesh mesh = softBody.MyOnDestroy();
             Destroy(mesh);
+        }
+    }
+
+    public static void addRecord(float fitness, string filepath)
+    {
+        try
+        {
+            using (System.IO.StreamWriter file = new System.IO.StreamWriter(@filepath, true))
+            {
+                string str = fitness.ToString();
+                file.WriteLine(str);
+            }
+        }
+        catch(Exception ex)
+        {
+            throw new ApplicationException("error :", ex);
         }
     }
 }

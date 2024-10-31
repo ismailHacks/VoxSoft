@@ -46,6 +46,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	public float playgrounfHeight = 0.03f;
 	//private Vector3 halfPlayGroundSize = new Vector3(5f, 0.03f, 5f);
 	private Vector3 halfPlayGroundSize = new Vector3(5f, 1f, 5f);
+	private Dictionary<int, float> topVertexInitialYPositions;
 
 
 	//Grabbing with mouse to move mesh around
@@ -132,6 +133,13 @@ public class SoftBodySimulationVectors : IGrabbable
 				topVertexIDs.Add(vertexID);
 			}
 		}
+
+		// Initialize topVertexInitialYPositions
+        topVertexInitialYPositions = new Dictionary<int, float>();
+        foreach (int vertexID in topVertexIDs)
+        {
+            topVertexInitialYPositions[vertexID] = pos[vertexID].y;
+        }
     }
 
     //Fill the data structures needed or soft body physics
@@ -212,6 +220,22 @@ public class SoftBodySimulationVectors : IGrabbable
 		Simulate(dt, numSubSteps, edgeCompliance, volCompliance, dampingCoefficient, pressure);
 	}
 
+	// Function to compute average vertical displacement of top voxels
+    public float GetAverageTopVoxelsVerticalDisplacement()
+    {
+        float totalDisplacement = 0f;
+        int count = topVertexIDs.Count;
+
+        foreach (int vertexID in topVertexIDs)
+        {
+            float initialY = topVertexInitialYPositions[vertexID];
+            float currentY = pos[vertexID].y;
+            totalDisplacement += (currentY - initialY);
+        }
+
+        return count > 0 ? totalDisplacement / count : 0f;
+    }
+
 	public void MyUpdate()
 	{
 		simulate = true;
@@ -235,6 +259,11 @@ public class SoftBodySimulationVectors : IGrabbable
 			//Update the visual mesh
 			UpdateMesh();
 		}
+		
+		foreach (int vertexID in topVertexIDs)
+        {
+            //Debug.DrawRay(pos[vertexID], Vector3.up * 0.1f, Color.green);
+        }
 	}
 
 	public Mesh MyOnDestroy()
@@ -722,6 +751,8 @@ public class SoftBodySimulationVectors : IGrabbable
             }
         }
     }
+
+
 	
 	//
 	// Unity mesh 

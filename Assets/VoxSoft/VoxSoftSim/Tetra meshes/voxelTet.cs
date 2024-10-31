@@ -4,8 +4,8 @@ using UnityEngine;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int cubicSize = 10;
-	private static int noVoxels = 298;
+	private static int cubicSize = 20;
+	private static int noVoxels = 1000;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 
@@ -38,7 +38,8 @@ public class voxelTet : TetrahedronData
 		//makeCuboid(0,0,0,7,7,7,true);
 		//makeCuboid(1,1,1,5,5,5,false);
 		//makeCylinder(3,0,3,4,3,true);
-		makeCylindricalActuator(4,0,4, width, wallThickness, 1, height);
+		//makeCylindricalActuator(10,0,10, width, wallThickness, 1, height);
+		makeCylindricalActuator(10,0,10, 5, 3, 1, 7);
 		//GenerateVoxelGridInt(cubicSize, voxPos);
 
 		positionVoxels(voxelData);
@@ -145,12 +146,12 @@ public class voxelTet : TetrahedronData
 	//
 
 	private void makeCylindricalActuator(int posX, int posY, int posZ, 
-	float width, float wallThickness, float capHeight, 
+	float radius, float wallThickness, float capHeight, 
 	float totalHeight)
 	{
-		makeCylinder(posX,posY,posZ,width,capHeight, true);
-		makeTube(posX,(int)capHeight,posZ,width,width-wallThickness,totalHeight-2*capHeight, true);
-		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,width,capHeight, true);
+		makeCylinder(posX,posY,posZ,radius,capHeight, true);
+		makeTube(posX,(int)capHeight,posZ,radius,radius-wallThickness,totalHeight-2*capHeight, true);
+		makeCylinder(posX,(int)capHeight+(int)(totalHeight-2*capHeight),posZ,radius,capHeight, true);
 	}
 
 	private void makePneuflexActuator(int posX, int posY, int posZ, 
