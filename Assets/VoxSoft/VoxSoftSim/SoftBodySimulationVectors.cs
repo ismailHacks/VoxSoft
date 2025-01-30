@@ -744,7 +744,7 @@ public class SoftBodySimulationVectors : IGrabbable
 	private void debugLog()
 	{
 		//To calculate simulated displacement.
-		Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
+		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].y- startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[1]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[2]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[3]].y - startingVerticalDisplacement)
@@ -752,7 +752,7 @@ public class SoftBodySimulationVectors : IGrabbable
 		+ " | " + (pos[beamLowerDisplacementPoss[5]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[6]].y - startingVerticalDisplacement)
 		+ " | " + (pos[beamLowerDisplacementPoss[7]].y - startingVerticalDisplacement)
-		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));
+		+ " | " + (pos[beamLowerDisplacementPoss[8]].y - startingVerticalDisplacement));*/
 
 		/*Debug.Log("disps = " + (pos[beamLowerDisplacementPoss[0]].x)
 		+ " | " + (pos[beamLowerDisplacementPoss[1]].x)
