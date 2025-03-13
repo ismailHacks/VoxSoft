@@ -748,10 +748,10 @@ public class SoftBodySimulationVectors : IGrabbable
 	{
 		int[] vertexMapping = tetraData.GetVertexMapping;
 
-		Debug.DrawRay(pos[vertexMapping[8 * 275]], gravity, Color.blue);
+		/*Debug.DrawRay(pos[vertexMapping[8 * 275]], gravity, Color.blue);
 		Debug.DrawRay(pos[vertexMapping[8 * 259]], gravity, Color.red);
 		Debug.DrawRay(pos[vertexMapping[8 * 260]], gravity, Color.green);
-		Debug.DrawRay(pos[vertexMapping[8 * 261]], gravity, Color.yellow);
+		Debug.DrawRay(pos[vertexMapping[8 * 261]], gravity, Color.yellow);*/
 	}
 
 	//

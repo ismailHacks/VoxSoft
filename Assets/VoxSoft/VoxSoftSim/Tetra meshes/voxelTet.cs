@@ -15,7 +15,7 @@ using Unity.Burst;
 public class voxelTet : TetrahedronData
 {
 	//Have to make sure number of voxels is correct to what is actually created!
-	private static int noVoxels = 584;
+	private static int noVoxels = 2000;
 	public static float voxelScale;
 	private int globalVoxelCount = 0;
 	private int connectionCount = 0;
@@ -40,7 +40,10 @@ public class voxelTet : TetrahedronData
         float startTime = Time.realtimeSinceStartup;
 
         makeActuatorPneuflex();
-        makeActuatorPneuflex2();
+        //makeActuatorPneuflexXPos(18);
+        //makeActuatorPneuflexXPos(36);
+
+        //makeActuatorPneuflex2();
         Debug.Log("Number of Voxels = " + globalVoxelCount);
         //Debug.Log(((Time.realtimeSinceStartup-startTime)*1000f)+" ms");
         combineVoxels(startTime);
@@ -93,6 +96,41 @@ public class voxelTet : TetrahedronData
         makeCuboid(17, 30, 1, 1, 6, 2);
         //Lower
         makeCuboid(0, 30, 1, 17, 1, 2);
+    }
+
+	private void makeActuatorPneuflexXPos(int disp)
+    {
+        //Right Side
+        makeCuboid(0+disp, 30, 0, 2, 4, 1);
+        makeCuboid(2+disp, 30, 0, 4, 6, 1);
+        makeCuboid(6+disp, 30, 0, 2, 4, 1);
+        makeCuboid(8+disp, 30, 0, 4, 6, 1);
+        makeCuboid(12+disp, 30, 0, 2, 4, 1);
+        makeCuboid(14+disp, 30, 0, 4, 6, 1);
+        //Left Side
+        makeCuboid(0+disp, 30, 3, 2, 4, 1);
+        makeCuboid(2+disp, 30, 3, 4, 6, 1);
+        makeCuboid(6+disp, 30, 3, 2, 4, 1);
+        makeCuboid(8+disp, 30, 3, 4, 6, 1);
+        makeCuboid(12+disp, 30, 3, 2, 4, 1);
+        makeCuboid(14+disp, 30, 3, 4, 6, 1);
+        //Upper First
+        makeCuboid(0+disp, 33, 1, 2, 1, 2);
+        makeCuboid(2+disp, 33, 1, 1, 3, 2);
+        makeCuboid(3+disp, 35, 1, 2, 1, 2);
+        makeCuboid(5+disp, 33, 1, 1, 3, 2);
+        //Upper Second
+        makeCuboid(6+disp, 33, 1, 2, 1, 2);
+        makeCuboid(8+disp, 33, 1, 1, 3, 2);
+        makeCuboid(9+disp, 35, 1, 2, 1, 2);
+        makeCuboid(11+disp, 33, 1, 1, 3, 2);
+        //Upper Third
+        makeCuboid(12+disp, 33, 1, 2, 1, 2);
+        makeCuboid(14+disp, 33, 1, 1, 3, 2);
+        makeCuboid(15+disp, 35, 1, 2, 1, 2);
+        makeCuboid(17+disp, 30, 1, 1, 6, 2);
+        //Lower
+        makeCuboid(0+disp, 30, 1, 17, 1, 2);
     }
 
 	private void makeActuatorPneuflex2()
